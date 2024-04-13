@@ -5,7 +5,3 @@ mod pb {
 
     tonic::include_proto!("anytype");
 }
-
-fn main() {
-    println!("Hello, world!");
-}
