@@ -14,6 +14,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let file_content = fs::read_to_string(&path)?
             // TODO: Is there no way to tell protoc how to resolve these imports instead
             .replace("pkg/lib/pb/model/protos/models.proto", "models.proto")
+            .replace(
+                "pkg/lib/pb/model/protos/localstore.proto",
+                "localstore.proto",
+            )
+            .replace("pb/protos/commands.proto", "commands.proto")
+            .replace("pb/protos/events.proto", "events.proto")
             // TODO: This won't be necessary if a patch such as:
             // https://github.com/tokio-rs/prost/pull/506
             // was accepted
@@ -32,6 +38,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &["protos/localstore.proto", "protos/models.proto"],
         &["protos"],
     )?;
+
+    tonic_build::configure()
+        .build_server(false)
+        // TODO: Is there really no way to compile the models together here instead of this
+        // external path thing
+        .extern_path(".anytype.model", "crate::pb::models")
+        .compile(&["protos/service.proto"], &["protos"])?;
 
     Ok(())
 }
