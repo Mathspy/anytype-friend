@@ -1,5 +1,5 @@
 [package]
-name = "anytype-friend"
+name = "anytype_friend"
 version = "0.1.0"
 edition = "2021"
 rust = "1.77"
