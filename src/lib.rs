@@ -270,8 +270,66 @@ impl AnytypeClient {
     }
 }
 
+#[derive(Debug)]
+pub struct Space {
+    client: ClientCommandsClient<tonic::transport::Channel>,
+    token: String,
+    info: pb::models::account::Info,
+}
+
 impl AuthorizedAnytypeClient {
     pub fn get_account(&self) -> &Account {
         &self.account
+    }
+
+    pub async fn default_space(&self) -> Result<Option<Space>, tonic::Status> {
+        let Some(info) = self.account.info.as_ref() else {
+            return Ok(None);
+        };
+
+        self.open_space(&info.account_space_id).await
+    }
+
+    pub async fn open_space(&self, space_id: &str) -> Result<Option<Space>, tonic::Status> {
+        let response = self
+            .inner
+            .clone()
+            .workspace_open(RequestWithToken {
+                request: pb::rpc::workspace::open::Request {
+                    space_id: space_id.to_string(),
+                },
+                token: &self.token,
+            })
+            .await?
+            .into_inner();
+
+        if let Some(error) = response.error {
+            use pb::rpc::workspace::open::response::error::Code;
+            match error.code() {
+                Code::Null => {}
+                // TODO: This hack will hopefully not last forever, currently anytype-heart doesn't
+                // really give any better way of detecting an incorrect space_id error though
+                Code::UnknownError
+                    if error.description
+                        == "failed to get derived ids: failed to get space: space not exists" =>
+                {
+                    return Ok(None)
+                }
+                Code::UnknownError => return Err(tonic::Status::unknown(error.description)),
+                Code::BadInput => return Err(tonic::Status::invalid_argument(error.description)),
+            }
+        };
+
+        let Some(info) = response.info else {
+            return Err(tonic::Status::internal(
+                "anytype-heart did not respond with a space's info",
+            ));
+        };
+
+        Ok(Some(Space {
+            client: self.inner.clone(),
+            token: self.token.clone(),
+            info,
+        }))
     }
 }
