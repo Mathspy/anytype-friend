@@ -123,23 +123,7 @@ impl AnytypeClient {
             ));
         };
 
-        let response = self
-            .inner
-            .metrics_set_parameters(pb::rpc::metrics::set_parameters::Request {
-                platform: "Mac".to_string(),
-                version: "0.39.0".to_string(),
-            })
-            .await?
-            .into_inner();
-
-        if let Some(error) = response.error {
-            use pb::rpc::metrics::set_parameters::response::error::Code;
-            match error.code() {
-                Code::Null => {}
-                Code::UnknownError => return Err(tonic::Status::unknown(error.description)),
-                Code::BadInput => return Err(tonic::Status::invalid_argument(error.description)),
-            }
-        }
+        self.set_metrics().await?;
 
         let response = self
             .inner
@@ -278,6 +262,29 @@ impl AnytypeClient {
         }
 
         None
+    }
+
+    async fn set_metrics(&self) -> Result<(), tonic::Status> {
+        let response = self
+            .inner
+            .clone()
+            .metrics_set_parameters(pb::rpc::metrics::set_parameters::Request {
+                platform: "Mac".to_string(),
+                version: "0.39.0".to_string(),
+            })
+            .await?
+            .into_inner();
+
+        if let Some(error) = response.error {
+            use pb::rpc::metrics::set_parameters::response::error::Code;
+            match error.code() {
+                Code::Null => {}
+                Code::UnknownError => return Err(tonic::Status::unknown(error.description)),
+                Code::BadInput => return Err(tonic::Status::invalid_argument(error.description)),
+            }
+        }
+
+        Ok(())
     }
 
     fn account_or_error(account: Option<Account>) -> Result<Account, tonic::Status> {
