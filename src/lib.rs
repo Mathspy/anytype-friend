@@ -226,10 +226,13 @@ impl AnytypeClient {
                                 }
                             }
                         }
-                        Ok(None) => {}
+                        Ok(None) => {
+                            tokio::task::yield_now().await;
+                        }
                         Err(error) => {
                             // TODO: Anything we need to do here?
                             dbg!(error);
+                            tokio::task::yield_now().await;
                         }
                     }
                 }
