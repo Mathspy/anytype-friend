@@ -92,26 +92,7 @@ impl AnytypeClient {
             }
         };
 
-        let response = self
-            .inner
-            .wallet_create_session(pb::rpc::wallet::create_session::Request {
-                auth: Some(pb::rpc::wallet::create_session::request::Auth::Mnemonic(
-                    mnemonic.to_string(),
-                )),
-            })
-            .await?
-            .into_inner();
-
-        if let Some(error) = response.error {
-            use pb::rpc::wallet::create_session::response::error::Code;
-            match error.code() {
-                Code::Null => {}
-                Code::UnknownError => return Err(tonic::Status::unknown(error.description)),
-                Code::BadInput => return Err(tonic::Status::invalid_argument(error.description)),
-            }
-        }
-
-        let token = response.token;
+        let token = self.create_wallet_session(mnemonic).await?;
 
         let (account_tx, mut event_listener) = tokio::sync::mpsc::channel(64);
         let event_listener_task = tokio::spawn({
@@ -236,6 +217,30 @@ impl AnytypeClient {
             event_listener,
             event_listener_task,
         })
+    }
+
+    async fn create_wallet_session(&self, mnemonic: &str) -> Result<String, tonic::Status> {
+        let response = self
+            .inner
+            .clone()
+            .wallet_create_session(pb::rpc::wallet::create_session::Request {
+                auth: Some(pb::rpc::wallet::create_session::request::Auth::Mnemonic(
+                    mnemonic.to_string(),
+                )),
+            })
+            .await?
+            .into_inner();
+
+        if let Some(error) = response.error {
+            use pb::rpc::wallet::create_session::response::error::Code;
+            match error.code() {
+                Code::Null => {}
+                Code::UnknownError => return Err(tonic::Status::unknown(error.description)),
+                Code::BadInput => return Err(tonic::Status::invalid_argument(error.description)),
+            }
+        }
+
+        Ok(response.token)
     }
 
     async fn wait_account_id_event(
