@@ -12,7 +12,9 @@ async fn can_create_an_account_and_authenticate_with_it() {
         let (mnemonic, client) = AnytypeClient::connect(&format!("http://127.0.0.1:{port}"))
             .await
             .unwrap()
-            .create_account_with_path("Test Client", NetworkSync::LocalOnly, temp_dir_path)
+            .with_network_sync(NetworkSync::LocalOnly)
+            .with_root_path(temp_dir_path)
+            .create_account("Test Client")
             .await
             .unwrap();
 
@@ -24,7 +26,9 @@ async fn can_create_an_account_and_authenticate_with_it() {
         let client = AnytypeClient::connect(&format!("http://127.0.0.1:{port}"))
             .await
             .unwrap()
-            .authenticate_with_path(&mnemonic, temp_dir_path)
+            .with_network_sync(NetworkSync::LocalOnly)
+            .with_root_path(temp_dir_path)
+            .authenticate(&mnemonic)
             .await
             .unwrap();
 

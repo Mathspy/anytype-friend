@@ -7,13 +7,16 @@ mod pb {
     tonic::include_proto!("anytype");
 }
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use pb::{client_commands_client::ClientCommandsClient, models::Account};
 use request::RequestWithToken;
 
 pub struct AnytypeClient {
     inner: ClientCommandsClient<tonic::transport::Channel>,
+    disable_local_network_sync: bool,
+    network_mode: i32,
+    root_path: Option<PathBuf>,
 }
 
 pub enum NetworkSync {
@@ -33,6 +36,7 @@ const MACOS_PATH: &str = "Library/Application Support/anytype/";
 
 impl AnytypeClient {
     pub async fn connect(url: &str) -> Result<Self, tonic::transport::Error> {
+        use pb::rpc::account::NetworkMode;
         use std::str::FromStr;
 
         let url = tonic::transport::Endpoint::from_str(url)?;
@@ -64,30 +68,32 @@ impl AnytypeClient {
             "anytype-friend currently only supports anytype-heart build a7986fffadcc2031b1eb3372265db5dda05f4c6d"
         );
 
-        Ok(Self { inner: client })
+        Ok(Self {
+            inner: client,
+            disable_local_network_sync: false,
+            network_mode: NetworkMode::DefaultConfig.into(),
+            root_path: None,
+        })
     }
 
-    pub async fn authenticate(
-        self,
-        mnemonic: &str,
-    ) -> Result<AuthorizedAnytypeClient, tonic::Status> {
+    fn calculate_root_path(&self) -> Result<PathBuf, tonic::Status> {
+        if let Some(root_path) = &self.root_path {
+            return Ok(root_path.clone());
+        }
+
         let Some(home_dir) = dirs::home_dir() else {
             return Err(tonic::Status::failed_precondition("Missing home directory"));
         };
 
-        let root_path = home_dir.join(MACOS_PATH);
-
-        self.authenticate_with_path(mnemonic, root_path).await
+        Ok(home_dir.join(MACOS_PATH))
     }
 
-    pub async fn authenticate_with_path<P: AsRef<Path>>(
+    pub async fn authenticate(
         mut self,
         mnemonic: &str,
-        root_path: P,
     ) -> Result<AuthorizedAnytypeClient, tonic::Status> {
-        let root_path = root_path
-            .as_ref()
-            .to_path_buf()
+        let root_path = self
+            .calculate_root_path()?
             .into_os_string()
             .into_string()
             .expect("non utf-8 path root_path");
@@ -151,8 +157,8 @@ impl AnytypeClient {
             .account_select(pb::rpc::account::select::Request {
                 id: account_id,
                 root_path,
-                disable_local_network_sync: false,
-                network_mode: pb::rpc::account::NetworkMode::DefaultConfig.into(),
+                disable_local_network_sync: self.disable_local_network_sync,
+                network_mode: self.network_mode,
                 network_custom_config_file_path: "".to_string(),
                 prefer_yamux_transport: false,
             })
@@ -264,31 +270,11 @@ impl AnytypeClient {
     }
 
     pub async fn create_account(
-        self,
-        name: &str,
-        network_sync: NetworkSync,
-    ) -> Result<(String, AuthorizedAnytypeClient), tonic::Status> {
-        let Some(home_dir) = dirs::home_dir() else {
-            return Err(tonic::Status::failed_precondition("Missing home directory"));
-        };
-
-        let root_path = home_dir.join(MACOS_PATH);
-
-        self.create_account_with_path(name, network_sync, root_path)
-            .await
-    }
-
-    pub async fn create_account_with_path<P: AsRef<Path>>(
         mut self,
         name: &str,
-        network_sync: NetworkSync,
-        root_path: P,
     ) -> Result<(String, AuthorizedAnytypeClient), tonic::Status> {
-        use pb::rpc::account::NetworkMode;
-
-        let root_path = root_path
-            .as_ref()
-            .to_path_buf()
+        let root_path = self
+            .calculate_root_path()?
             .into_os_string()
             .into_string()
             .expect("non utf-8 path root_path");
@@ -320,24 +306,14 @@ impl AnytypeClient {
 
         self.set_metrics().await?;
 
-        let disable_local_network_sync = match &network_sync {
-            NetworkSync::Sync => false,
-            NetworkSync::LocalOnly => true,
-        };
-
-        let network_mode = match &network_sync {
-            NetworkSync::Sync => NetworkMode::DefaultConfig,
-            NetworkSync::LocalOnly => NetworkMode::LocalOnly,
-        };
-
         let response = self
             .inner
             .account_create(pb::rpc::account::create::Request {
                 name: name.to_string(),
                 store_path: root_path,
                 icon: 0,
-                disable_local_network_sync,
-                network_mode: network_mode.into(),
+                disable_local_network_sync: self.disable_local_network_sync,
+                network_mode: self.network_mode,
                 network_custom_config_file_path: String::new(),
                 prefer_yamux_transport: false,
                 avatar: None,
@@ -365,6 +341,33 @@ impl AnytypeClient {
                 event_listener_task,
             },
         ))
+    }
+
+    pub fn with_root_path<P: AsRef<Path>>(self, path: P) -> Self {
+        Self {
+            root_path: Some(path.as_ref().to_path_buf()),
+            ..self
+        }
+    }
+
+    pub fn with_network_sync(self, network_sync: NetworkSync) -> Self {
+        use pb::rpc::account::NetworkMode;
+
+        let disable_local_network_sync = match &network_sync {
+            NetworkSync::Sync => false,
+            NetworkSync::LocalOnly => true,
+        };
+
+        let network_mode = match &network_sync {
+            NetworkSync::Sync => NetworkMode::DefaultConfig,
+            NetworkSync::LocalOnly => NetworkMode::LocalOnly,
+        };
+
+        Self {
+            disable_local_network_sync,
+            network_mode: network_mode.into(),
+            ..self
+        }
     }
 
     async fn wait_account_id_event(
