@@ -14,6 +14,11 @@ pub struct AnytypeClient {
     inner: ClientCommandsClient<tonic::transport::Channel>,
 }
 
+pub enum NetworkSync {
+    Sync,
+    LocalOnly,
+}
+
 pub struct AuthorizedAnytypeClient {
     inner: ClientCommandsClient<tonic::transport::Channel>,
     token: String,
@@ -240,6 +245,97 @@ impl AnytypeClient {
         });
 
         (event_listener, event_listener_task)
+    }
+
+    pub async fn create_account(
+        mut self,
+        name: &str,
+        network_sync: NetworkSync,
+    ) -> Result<(String, AuthorizedAnytypeClient), tonic::Status> {
+        use pb::rpc::account::NetworkMode;
+
+        let Some(home_dir) = dirs::home_dir() else {
+            return Err(tonic::Status::failed_precondition("Missing home directory"));
+        };
+
+        let root_path = home_dir
+            .join(MACOS_PATH)
+            .into_os_string()
+            .into_string()
+            .expect("non utf-8 path root_path");
+
+        let response = self
+            .inner
+            .wallet_create(pb::rpc::wallet::create::Request {
+                root_path: root_path.clone(),
+            })
+            .await?
+            .into_inner();
+
+        if let Some(error) = response.error {
+            use pb::rpc::wallet::create::response::error::Code;
+            match error.code() {
+                Code::Null => {}
+                Code::UnknownError => return Err(tonic::Status::unknown(error.description)),
+                Code::BadInput => return Err(tonic::Status::invalid_argument(error.description)),
+                Code::FailedToCreateLocalRepo => {
+                    return Err(tonic::Status::internal(error.description))
+                }
+            }
+        }
+
+        let mnemonic = response.mnemonic;
+        let token = self.create_wallet_session(&mnemonic).await?;
+
+        let (event_listener, event_listener_task) = self.start_event_listener(&token);
+
+        self.set_metrics().await?;
+
+        let disable_local_network_sync = match &network_sync {
+            NetworkSync::Sync => false,
+            NetworkSync::LocalOnly => true,
+        };
+
+        let network_mode = match &network_sync {
+            NetworkSync::Sync => NetworkMode::DefaultConfig,
+            NetworkSync::LocalOnly => NetworkMode::LocalOnly,
+        };
+
+        let response = self
+            .inner
+            .account_create(pb::rpc::account::create::Request {
+                name: name.to_string(),
+                store_path: root_path,
+                icon: 0,
+                disable_local_network_sync,
+                network_mode: network_mode.into(),
+                network_custom_config_file_path: String::new(),
+                prefer_yamux_transport: false,
+                avatar: None,
+            })
+            .await?
+            .into_inner();
+
+        if let Some(error) = response.error {
+            use pb::rpc::account::create::response::error::Code;
+            match error.code() {
+                Code::Null => {}
+                Code::UnknownError => return Err(tonic::Status::unknown(error.description)),
+                Code::BadInput => return Err(tonic::Status::invalid_argument(error.description)),
+                _ => todo!("So many unique error types..."),
+            }
+        }
+
+        Ok((
+            mnemonic,
+            AuthorizedAnytypeClient {
+                inner: self.inner,
+                token,
+                account: Self::account_or_error(response.account)?,
+                event_listener,
+                event_listener_task,
+            },
+        ))
     }
 
     async fn wait_account_id_event(
