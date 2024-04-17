@@ -460,3 +460,9 @@ impl AuthorizedAnytypeClient {
         }))
     }
 }
+
+impl Drop for AuthorizedAnytypeClient {
+    fn drop(&mut self) {
+        self.event_listener_task.abort();
+    }
+}
