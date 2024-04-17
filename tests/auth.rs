@@ -21,7 +21,7 @@ async fn can_create_an_account_and_authenticate_with_it() {
         let client = AnytypeClient::connect(&format!("http://127.0.0.1:{port}"))
             .await
             .unwrap()
-            .auth(&mnemonic)
+            .authenticate(&mnemonic)
             .await
             .unwrap();
 

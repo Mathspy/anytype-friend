@@ -65,7 +65,10 @@ impl AnytypeClient {
         Ok(Self { inner: client })
     }
 
-    pub async fn auth(mut self, mnemonic: &str) -> Result<AuthorizedAnytypeClient, tonic::Status> {
+    pub async fn authenticate(
+        mut self,
+        mnemonic: &str,
+    ) -> Result<AuthorizedAnytypeClient, tonic::Status> {
         let Some(home_dir) = dirs::home_dir() else {
             return Err(tonic::Status::failed_precondition("Missing home directory"));
         };
