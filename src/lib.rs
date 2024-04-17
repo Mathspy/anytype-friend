@@ -229,16 +229,10 @@ impl AnytypeClient {
             }
         }
 
-        let Some(account) = response.account else {
-            return Err(tonic::Status::internal(
-                "anytype-heart did not respond with an account",
-            ));
-        };
-
         Ok(AuthorizedAnytypeClient {
             inner: self.inner,
             token,
-            account,
+            account: Self::account_or_error(response.account)?,
             event_listener,
             event_listener_task,
         })
@@ -267,6 +261,16 @@ impl AnytypeClient {
         }
 
         None
+    }
+
+    fn account_or_error(account: Option<Account>) -> Result<Account, tonic::Status> {
+        let Some(account) = account else {
+            return Err(tonic::Status::internal(
+                "anytype-heart did not respond with an account",
+            ));
+        };
+
+        Ok(account)
     }
 }
 
