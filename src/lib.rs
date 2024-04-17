@@ -94,53 +94,7 @@ impl AnytypeClient {
 
         let token = self.create_wallet_session(mnemonic).await?;
 
-        let (account_tx, mut event_listener) = tokio::sync::mpsc::channel(64);
-        let event_listener_task = tokio::spawn({
-            let client = self.inner.clone();
-            let token = token.clone();
-
-            async move {
-                let response = client
-                    .clone()
-                    .listen_session_events(pb::StreamRequest { token })
-                    .await
-                    .unwrap();
-
-                let mut stream = response.into_inner();
-
-                loop {
-                    match stream.message().await {
-                        Ok(Some(event)) => {
-                            for message in event.messages {
-                                use pb::event::message::Value;
-
-                                let Some(value) = message.value else {
-                                    continue;
-                                };
-
-                                match &value {
-                                    Value::AccountShow(_) => {
-                                        account_tx
-                                            .send(value)
-                                            .await
-                                            .expect("Event receiver dropped");
-                                    }
-                                    message => {
-                                        // TODO: Properly log other messages in debug logs
-                                        dbg!(message);
-                                    }
-                                }
-                            }
-                        }
-                        Ok(None) => {}
-                        Err(error) => {
-                            // TODO: Anything we need to do here?
-                            dbg!(error);
-                        }
-                    }
-                }
-            }
-        });
+        let (mut event_listener, event_listener_task) = self.start_event_listener(&token);
 
         let response = self
             .inner
@@ -241,6 +195,64 @@ impl AnytypeClient {
         }
 
         Ok(response.token)
+    }
+
+    fn start_event_listener(
+        &self,
+        token: &str,
+    ) -> (
+        tokio::sync::mpsc::Receiver<pb::event::message::Value>,
+        tokio::task::JoinHandle<()>,
+    ) {
+        let (event_emitter, event_listener) = tokio::sync::mpsc::channel(64);
+        let event_listener_task = tokio::spawn({
+            let client = self.inner.clone();
+            let token = token.to_string();
+
+            async move {
+                let response = client
+                    .clone()
+                    .listen_session_events(pb::StreamRequest { token })
+                    .await
+                    .unwrap();
+
+                let mut stream = response.into_inner();
+
+                loop {
+                    match stream.message().await {
+                        Ok(Some(event)) => {
+                            for message in event.messages {
+                                use pb::event::message::Value;
+
+                                let Some(value) = message.value else {
+                                    continue;
+                                };
+
+                                match &value {
+                                    Value::AccountShow(_) => {
+                                        event_emitter
+                                            .send(value)
+                                            .await
+                                            .expect("Event receiver dropped");
+                                    }
+                                    message => {
+                                        // TODO: Properly log other messages in debug logs
+                                        dbg!(message);
+                                    }
+                                }
+                            }
+                        }
+                        Ok(None) => {}
+                        Err(error) => {
+                            // TODO: Anything we need to do here?
+                            dbg!(error);
+                        }
+                    }
+                }
+            }
+        });
+
+        (event_listener, event_listener_task)
     }
 
     async fn wait_account_id_event(
