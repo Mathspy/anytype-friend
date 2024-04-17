@@ -7,6 +7,8 @@ mod pb {
     tonic::include_proto!("anytype");
 }
 
+use std::path::Path;
+
 use pb::{client_commands_client::ClientCommandsClient, models::Account};
 use request::RequestWithToken;
 
@@ -66,15 +68,26 @@ impl AnytypeClient {
     }
 
     pub async fn authenticate(
-        mut self,
+        self,
         mnemonic: &str,
     ) -> Result<AuthorizedAnytypeClient, tonic::Status> {
         let Some(home_dir) = dirs::home_dir() else {
             return Err(tonic::Status::failed_precondition("Missing home directory"));
         };
 
-        let root_path = home_dir
-            .join(MACOS_PATH)
+        let root_path = home_dir.join(MACOS_PATH);
+
+        self.authenticate_with_path(mnemonic, root_path).await
+    }
+
+    pub async fn authenticate_with_path<P: AsRef<Path>>(
+        mut self,
+        mnemonic: &str,
+        root_path: P,
+    ) -> Result<AuthorizedAnytypeClient, tonic::Status> {
+        let root_path = root_path
+            .as_ref()
+            .to_path_buf()
             .into_os_string()
             .into_string()
             .expect("non utf-8 path root_path");
@@ -251,18 +264,31 @@ impl AnytypeClient {
     }
 
     pub async fn create_account(
-        mut self,
+        self,
         name: &str,
         network_sync: NetworkSync,
     ) -> Result<(String, AuthorizedAnytypeClient), tonic::Status> {
-        use pb::rpc::account::NetworkMode;
-
         let Some(home_dir) = dirs::home_dir() else {
             return Err(tonic::Status::failed_precondition("Missing home directory"));
         };
 
-        let root_path = home_dir
-            .join(MACOS_PATH)
+        let root_path = home_dir.join(MACOS_PATH);
+
+        self.create_account_with_path(name, network_sync, root_path)
+            .await
+    }
+
+    pub async fn create_account_with_path<P: AsRef<Path>>(
+        mut self,
+        name: &str,
+        network_sync: NetworkSync,
+        root_path: P,
+    ) -> Result<(String, AuthorizedAnytypeClient), tonic::Status> {
+        use pb::rpc::account::NetworkMode;
+
+        let root_path = root_path
+            .as_ref()
+            .to_path_buf()
             .into_os_string()
             .into_string()
             .expect("non utf-8 path root_path");
