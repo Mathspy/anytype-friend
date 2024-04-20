@@ -2,13 +2,21 @@ use std::{
     env,
     future::Future,
     io::ErrorKind,
-    process::{Command, Stdio},
+    process::{Child, Command, Stdio},
 };
 
 use rand::Rng;
 
 const MACOS_PATH: &str =
     "/Applications/Anytype.app/Contents/Resources/app.asar.unpacked/dist/anytypeHelper";
+
+struct KillOnDrop(Child);
+
+impl Drop for KillOnDrop {
+    fn drop(&mut self) {
+        let _ = self.0.kill();
+    }
+}
 
 pub async fn run_with_service<F, Fut, O>(callback: F) -> O
 where
@@ -29,7 +37,7 @@ where
         command.stdout(Stdio::null()).stderr(Stdio::null());
     }
 
-    let mut child = command.spawn().unwrap();
+    let _child = KillOnDrop(command.spawn().unwrap());
 
     loop {
         match tokio::net::TcpStream::connect(format!("127.0.0.1:{port}")).await {
@@ -42,9 +50,5 @@ where
         }
     }
 
-    let ret = callback(port).await;
-
-    child.kill().unwrap();
-
-    ret
+    callback(port).await
 }
