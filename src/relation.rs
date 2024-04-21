@@ -139,6 +139,7 @@ pub struct RelationKey {
 pub struct Relation {
     id: RelationId,
     name: String,
+    is_hidden: bool,
     relation_key: RelationKey,
     format: RelationFormat,
 }
@@ -169,6 +170,7 @@ impl TryFromProst for Relation {
 
         let id = value.take::<String>("id")?;
         let name = value.take::<String>("name")?;
+        let is_hidden = value.take_optional::<bool>("isHidden")?.unwrap_or_default();
         let relation_key = value.take::<String>("relationKey")?;
         let format = value.take_enum::<InternalRelationFormat>("relationFormat")?;
         let object_types = value.take_optional::<HashSet<ObjectId>>("relationFormatObjectTypes")?;
@@ -176,6 +178,7 @@ impl TryFromProst for Relation {
         Ok(Self {
             id: RelationId(id),
             name,
+            is_hidden,
             relation_key: RelationKey { key: relation_key },
             format: RelationFormat::from_internal(format, object_types),
         })
