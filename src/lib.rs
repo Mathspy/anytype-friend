@@ -1,4 +1,5 @@
 mod client;
+mod prost_ext;
 mod request;
 mod space;
 mod pb {
