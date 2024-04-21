@@ -178,3 +178,57 @@ impl Display for ProstConversionError {
 }
 
 impl std::error::Error for ProstConversionError {}
+
+pub(crate) struct ProstStruct {
+    inner: prost_types::Struct,
+}
+
+impl From<prost_types::Struct> for ProstStruct {
+    fn from(value: prost_types::Struct) -> Self {
+        Self { inner: value }
+    }
+}
+
+impl ProstStruct {
+    fn take_inner(
+        &mut self,
+        field: &'static str,
+    ) -> Result<prost_types::value::Kind, ProstConversionError> {
+        self.inner
+            .fields
+            .remove(field)
+            .ok_or(ProstConversionError::MissingStructField(field))?
+            .kind
+            .ok_or(ProstConversionError::KindIsEmpty)
+    }
+
+    pub fn take<T>(&mut self, field: &'static str) -> Result<T, ProstConversionError>
+    where
+        T: TryFromProst<Input = prost_types::value::Kind>,
+    {
+        T::try_from_prost(self.take_inner(field)?)
+    }
+
+    pub fn take_optional<T>(
+        &mut self,
+        field: &'static str,
+    ) -> Result<Option<T>, ProstConversionError>
+    where
+        T: TryFromProst<Input = prost_types::value::Kind>,
+    {
+        match self.take_inner(field) {
+            Ok(kind) => T::try_from_prost(kind).map(Some),
+            Err(ProstConversionError::MissingStructField(_)) => Ok(None),
+            Err(error) => Err(error),
+        }
+    }
+
+    pub fn take_enum<E: TryFrom<i32>>(
+        &mut self,
+        field: &'static str,
+    ) -> Result<E, ProstConversionError> {
+        let number = self.take::<f64>(field)? as i32;
+
+        E::try_from(number).map_err(|_| ProstConversionError::InvalidEnumValue(number))
+    }
+}
