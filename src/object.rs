@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::prost_ext::{ProstConversionError, TryFromProst};
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ObjectId(String);
 
 impl Display for ObjectId {

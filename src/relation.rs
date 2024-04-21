@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, HashSet},
+    collections::{BTreeMap, BTreeSet},
     fmt::Display,
 };
 
@@ -41,7 +41,7 @@ pub enum RelationFormat {
     Url,
     Email,
     Phone,
-    Object { types: HashSet<ObjectId> },
+    Object { types: BTreeSet<ObjectId> },
 }
 
 impl Display for RelationFormat {
@@ -80,7 +80,7 @@ impl Display for RelationFormat {
 impl RelationFormat {
     fn from_internal(
         internal: InternalRelationFormat,
-        object_types: Option<HashSet<ObjectId>>,
+        object_types: Option<BTreeSet<ObjectId>>,
     ) -> Self {
         match internal {
             InternalRelationFormat::Longtext => RelationFormat::Text,
@@ -181,7 +181,8 @@ impl TryFromProst for Relation {
         let is_hidden = value.take_optional::<bool>("isHidden")?.unwrap_or_default();
         let relation_key = value.take::<String>("relationKey")?;
         let format = value.take_enum::<InternalRelationFormat>("relationFormat")?;
-        let object_types = value.take_optional::<HashSet<ObjectId>>("relationFormatObjectTypes")?;
+        let object_types =
+            value.take_optional::<BTreeSet<ObjectId>>("relationFormatObjectTypes")?;
 
         Ok(Self {
             id,

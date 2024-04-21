@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fmt::Display, hash::Hash};
+use std::{collections::BTreeSet, fmt::Display, hash::Hash};
 
 pub(crate) trait IntoProstValue {
     fn into_prost(self) -> prost_types::Value;
@@ -108,9 +108,9 @@ where
     }
 }
 
-impl<T> TryFromProst for HashSet<T>
+impl<T> TryFromProst for BTreeSet<T>
 where
-    T: TryFromProst<Input = prost_types::value::Kind> + Hash + Eq,
+    T: TryFromProst<Input = prost_types::value::Kind> + Hash + Ord,
 {
     type Input = prost_types::value::Kind;
 
