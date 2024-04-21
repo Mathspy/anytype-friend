@@ -66,6 +66,20 @@ impl TryFromProst for f64 {
     }
 }
 
+impl TryFromProst for bool {
+    type Input = prost_types::value::Kind;
+
+    fn try_from_prost(kind: Self::Input) -> Result<Self, ProstConversionError> {
+        match kind {
+            prost_types::value::Kind::BoolValue(boolean) => Ok(boolean),
+            kind => Err(ProstConversionError::IncorrecKind {
+                expected: ProstKind::Bool,
+                received: ProstKind::from(&kind),
+            }),
+        }
+    }
+}
+
 macro_rules! try_from_prost_iterator {
     ($kind:expr) => {
         match $kind {
