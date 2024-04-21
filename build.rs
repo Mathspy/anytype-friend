@@ -34,13 +34,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Ok::<(), std::io::Error>(())
     })?;
 
-    tonic_build::configure().build_server(false).compile(
-        &["protos/localstore.proto", "protos/models.proto"],
-        &["protos"],
-    )?;
+    tonic_build::configure()
+        .build_server(false)
+        .emit_rerun_if_changed(false)
+        .compile(
+            &["protos/localstore.proto", "protos/models.proto"],
+            &["protos"],
+        )?;
 
     tonic_build::configure()
         .build_server(false)
+        .emit_rerun_if_changed(false)
         // TODO: Is there really no way to compile the models together here instead of this
         // external path thing
         .extern_path(".anytype.model", "crate::pb::models")
