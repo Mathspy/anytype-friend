@@ -130,6 +130,14 @@ impl From<RelationFormat> for f64 {
 #[derive(Debug)]
 pub struct RelationId(String);
 
+impl TryFromProst for RelationId {
+    type Input = prost_types::value::Kind;
+
+    fn try_from_prost(kind: Self::Input) -> Result<Self, ProstConversionError> {
+        String::try_from_prost(kind).map(RelationId)
+    }
+}
+
 #[derive(Debug)]
 pub struct RelationKey {
     key: String,
@@ -168,7 +176,7 @@ impl TryFromProst for Relation {
         let layout = value.take_enum::<Layout>("layout")?;
         assert!(layout == Layout::Relation);
 
-        let id = value.take::<String>("id")?;
+        let id = value.take::<RelationId>("id")?;
         let name = value.take::<String>("name")?;
         let is_hidden = value.take_optional::<bool>("isHidden")?.unwrap_or_default();
         let relation_key = value.take::<String>("relationKey")?;
@@ -176,7 +184,7 @@ impl TryFromProst for Relation {
         let object_types = value.take_optional::<HashSet<ObjectId>>("relationFormatObjectTypes")?;
 
         Ok(Self {
-            id: RelationId(id),
+            id,
             name,
             is_hidden,
             relation_key: RelationKey { key: relation_key },
