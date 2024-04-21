@@ -4,8 +4,9 @@ use std::{
 };
 
 use crate::{
-    object::ObjectId, pb::models::RelationFormat as InternalRelationFormat,
-    prost_ext::IntoProstValue,
+    object::ObjectId,
+    pb::models::RelationFormat as InternalRelationFormat,
+    prost_ext::{IntoProstValue, ProstConversionError, ProstStruct, TryFromProst},
 };
 
 pub struct RelationSpec {
@@ -124,4 +125,64 @@ impl From<RelationFormat> for f64 {
 
         i32::from(internal) as f64
     }
+}
+
+#[derive(Debug)]
+pub struct RelationId(String);
+
+#[derive(Debug)]
+pub struct RelationKey {
+    key: String,
+}
+
+#[derive(Debug)]
+pub struct Relation {
+    id: RelationId,
+    name: String,
+    relation_key: RelationKey,
+    format: RelationFormat,
+}
+
+impl Relation {
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn get_format(&self) -> &RelationFormat {
+        &self.format
+    }
+}
+
+impl TryFromProst for Relation {
+    type Input = prost_types::Struct;
+
+    fn try_from_prost(input: Self::Input) -> Result<Self, ProstConversionError>
+    where
+        Self: Sized,
+    {
+        use crate::pb::models::object_type::Layout;
+
+        let mut value = ProstStruct::from(input);
+
+        let layout = value.take_enum::<Layout>("layout")?;
+        assert!(layout == Layout::Relation);
+
+        let id = value.take::<String>("id")?;
+        let name = value.take::<String>("name")?;
+        let relation_key = value.take::<String>("relationKey")?;
+        let format = value.take_enum::<InternalRelationFormat>("relationFormat")?;
+        let object_types = value.take_optional::<HashSet<ObjectId>>("relationFormatObjectTypes")?;
+
+        Ok(Self {
+            id: RelationId(id),
+            name,
+            relation_key: RelationKey { key: relation_key },
+            format: RelationFormat::from_internal(format, object_types),
+        })
+    }
+}
+
+impl crate::space::SearchOutput for Relation {
+    const LAYOUT: crate::pb::models::object_type::Layout =
+        crate::pb::models::object_type::Layout::Relation;
 }
