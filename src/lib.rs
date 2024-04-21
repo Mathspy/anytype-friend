@@ -1,6 +1,7 @@
 mod client;
 mod object;
 mod prost_ext;
+mod relation;
 mod request;
 mod space;
 mod pb {
@@ -12,4 +13,5 @@ mod pb {
 }
 
 pub use client::{AnytypeClient, AuthorizedAnytypeClient, NetworkSync};
+pub use relation::{RelationFormat, RelationSpec};
 pub use space::Space;
