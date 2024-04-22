@@ -24,13 +24,12 @@ async fn upsert_relation_can_upsert_a_preexisting_one() {
             .unwrap()
             .unwrap()
             .upsert_relation(RelationSpec {
-                name: "due date".to_string(),
+                name: "Due date".to_string(),
                 format: RelationFormat::Date,
             })
             .await
             .unwrap();
 
-        // This also verifies that name is case insensitive
         assert_eq!(relation.get_name(), "Due date");
         assert_eq!(*relation.get_format(), RelationFormat::Date);
     })
@@ -58,7 +57,7 @@ async fn upsert_relation_fails_to_upsert_on_mismatched_format() {
             .unwrap()
             .unwrap()
             .upsert_relation(RelationSpec {
-                name: "due date".to_string(),
+                name: "Due date".to_string(),
                 format: RelationFormat::Text,
             })
             .await

@@ -10,7 +10,7 @@ use crate::{
 };
 
 pub struct RelationSpec {
-    /// The name of the relation, case insensitive
+    /// The name of the relation
     pub name: String,
     pub format: RelationFormat,
 }

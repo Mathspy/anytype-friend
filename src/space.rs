@@ -125,7 +125,7 @@ impl Space {
             .search_objects::<Relation>(vec![Filter {
                 operator: Operator::And.into(),
                 relation_key: "name".to_string(),
-                condition: Condition::Like.into(),
+                condition: Condition::Equal.into(),
                 value: Some(relation_spec.name.clone().into_prost()),
 
                 ..Default::default()
