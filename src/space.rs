@@ -1,6 +1,8 @@
+use std::collections::BTreeSet;
 use std::ops::Not;
 
 use crate::object::ObjectId;
+use crate::object_type::{ObjectType, ObjectTypeSpec};
 use crate::pb::{
     self, client_commands_client::ClientCommandsClient, models::block::content::dataview::Filter,
 };
@@ -189,6 +191,48 @@ impl Space {
             _ => Err(tonic::Status::failed_precondition(format!(
                 "More than one relation with same name {}",
                 relation_spec.name
+            ))),
+        }
+    }
+
+    pub async fn upsert_object_type(
+        &self,
+        object_type_spec: ObjectTypeSpec,
+    ) -> Result<ObjectType, tonic::Status> {
+        use pb::models::block::content::dataview::filter::{Condition, Operator};
+
+        let mut object_types = self
+            .search_objects::<ObjectType>(vec![Filter {
+                operator: Operator::And.into(),
+                relation_key: "name".to_string(),
+                condition: Condition::Like.into(),
+                value: Some(object_type_spec.name.clone().into_prost()),
+
+                ..Default::default()
+            }])
+            .await?;
+
+        match object_types.len() {
+            0 => todo!(),
+            1 => {
+                let object_type = object_types.swap_remove(0);
+
+                let relations = self
+                    .get_objects::<Relation>(object_type.recommended_relations.clone())
+                    .await?
+                    .into_iter()
+                    .map(Relation::into_spec)
+                    .collect::<BTreeSet<_>>();
+
+                if relations == object_type_spec.relations {
+                    Ok(object_type)
+                } else {
+                    todo!()
+                }
+            }
+            _ => Err(tonic::Status::failed_precondition(format!(
+                "More than one object type with same name {}",
+                object_type_spec.name
             ))),
         }
     }
