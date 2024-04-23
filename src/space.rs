@@ -1,5 +1,6 @@
 use std::ops::Not;
 
+use crate::object::ObjectId;
 use crate::pb::{
     self, client_commands_client::ClientCommandsClient, models::block::content::dataview::Filter,
 };
@@ -87,6 +88,34 @@ impl Space {
             // by mistake anywhere else
             .filter(|output| output.is_hidden().not())
             .collect::<Vec<_>>())
+    }
+
+    async fn get_objects<O>(
+        &self,
+        ids: impl IntoIterator<Item = impl Into<ObjectId>>,
+    ) -> Result<Vec<O>, tonic::Status>
+    where
+        O: SearchOutput,
+    {
+        use pb::models::block::content::dataview::filter::{Condition, Operator};
+
+        let objects = self
+            .search_objects::<O>(vec![Filter {
+                operator: Operator::And.into(),
+                relation_key: "id".to_string(),
+                condition: Condition::In.into(),
+                value: Some(
+                    ids.into_iter()
+                        .map(|id| id.into().into_prost())
+                        .collect::<Vec<_>>()
+                        .into_prost(),
+                ),
+
+                ..Default::default()
+            }])
+            .await?;
+
+        Ok(objects)
     }
 
     async fn create_relation(&self, relation: RelationSpec) -> Result<Relation, tonic::Status> {
