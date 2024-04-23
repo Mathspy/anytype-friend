@@ -130,6 +130,12 @@ impl From<RelationFormat> for f64 {
 #[derive(Debug)]
 pub struct RelationId(String);
 
+impl IntoProstValue for RelationId {
+    fn into_prost(self) -> prost_types::Value {
+        self.0.into_prost()
+    }
+}
+
 impl TryFromProst for RelationId {
     type Input = prost_types::value::Kind;
 

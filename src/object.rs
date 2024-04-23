@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::prost_ext::{ProstConversionError, TryFromProst};
+use crate::prost_ext::{IntoProstValue, ProstConversionError, TryFromProst};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ObjectId(pub(crate) String);
@@ -8,6 +8,12 @@ pub struct ObjectId(pub(crate) String);
 impl Display for ObjectId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&self.0)
+    }
+}
+
+impl IntoProstValue for ObjectId {
+    fn into_prost(self) -> prost_types::Value {
+        self.0.into_prost()
     }
 }
 
