@@ -1,3 +1,5 @@
+use std::ops::Not;
+
 use crate::pb::{
     self, client_commands_client::ClientCommandsClient, models::block::content::dataview::Filter,
 };
@@ -18,6 +20,8 @@ pub struct Space {
 /// TryFrom conversion
 pub(crate) trait SearchOutput: TryFromProst<Input = prost_types::Struct> {
     const LAYOUT: pb::models::object_type::Layout;
+
+    fn is_hidden(&self) -> bool;
 }
 
 impl Space {
@@ -79,6 +83,9 @@ impl Space {
             // we should still warn though as that would imply bugs in the
             // internal code
             .filter_map(Result::ok)
+            // We always filter outputs that are hidden so that they aren't used
+            // by mistake anywhere else
+            .filter(|output| output.is_hidden().not())
             .collect::<Vec<_>>())
     }
 
