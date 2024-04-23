@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, fmt::Display};
 
 use crate::{
     prost_ext::{IntoProstValue, ProstConversionError, ProstStruct, TryFromProst},
@@ -11,8 +11,14 @@ pub struct ObjectTypeSpec {
     pub relations: BTreeSet<RelationSpec>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ObjectTypeId(String);
+
+impl Display for ObjectTypeId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
 
 impl IntoProstValue for ObjectTypeId {
     fn into_prost(self) -> prost_types::Value {

@@ -5,6 +5,7 @@ use std::{
 
 use crate::{
     object::ObjectId,
+    object_type::ObjectTypeId,
     pb::models::RelationFormat as InternalRelationFormat,
     prost_ext::{IntoProstValue, ProstConversionError, ProstStruct, TryFromProst},
 };
@@ -42,7 +43,7 @@ pub enum RelationFormat {
     Url,
     Email,
     Phone,
-    Object { types: BTreeSet<ObjectId> },
+    Object { types: BTreeSet<ObjectTypeId> },
 }
 
 impl Display for RelationFormat {
@@ -81,7 +82,7 @@ impl Display for RelationFormat {
 impl RelationFormat {
     fn from_internal(
         internal: InternalRelationFormat,
-        object_types: Option<BTreeSet<ObjectId>>,
+        object_types: Option<BTreeSet<ObjectTypeId>>,
     ) -> Self {
         match internal {
             InternalRelationFormat::Longtext => RelationFormat::Text,
@@ -195,7 +196,7 @@ impl TryFromProst for Relation {
         let relation_key = value.take::<String>("relationKey")?;
         let format = value.take_enum::<InternalRelationFormat>("relationFormat")?;
         let object_types =
-            value.take_optional::<BTreeSet<ObjectId>>("relationFormatObjectTypes")?;
+            value.take_optional::<BTreeSet<ObjectTypeId>>("relationFormatObjectTypes")?;
 
         Ok(Self {
             id,
