@@ -18,7 +18,7 @@ async fn can_create_an_account_and_authenticate_with_it() {
             .await
             .unwrap();
 
-        (mnemonic, client.get_account().id.clone())
+        (mnemonic, client.account().id.clone())
     })
     .await;
 
@@ -32,7 +32,7 @@ async fn can_create_an_account_and_authenticate_with_it() {
             .await
             .unwrap();
 
-        assert_eq!(client.get_account().id, account_id);
+        assert_eq!(client.account().id, account_id);
     })
     .await;
 }

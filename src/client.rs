@@ -422,7 +422,7 @@ impl AnytypeClient {
 }
 
 impl AuthorizedAnytypeClient {
-    pub fn get_account(&self) -> &Account {
+    pub fn account(&self) -> &Account {
         &self.account
     }
 

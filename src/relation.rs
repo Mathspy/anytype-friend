@@ -165,11 +165,11 @@ pub struct Relation {
 }
 
 impl Relation {
-    pub fn get_name(&self) -> &str {
+    pub fn name(&self) -> &str {
         &self.name
     }
 
-    pub fn get_format(&self) -> &RelationFormat {
+    pub fn format(&self) -> &RelationFormat {
         &self.format
     }
 }

@@ -30,8 +30,8 @@ async fn upsert_relation_can_upsert_a_preexisting_one() {
             .await
             .unwrap();
 
-        assert_eq!(relation.get_name(), "Due date");
-        assert_eq!(*relation.get_format(), RelationFormat::Date);
+        assert_eq!(relation.name(), "Due date");
+        assert_eq!(*relation.format(), RelationFormat::Date);
     })
     .await;
 }
@@ -98,8 +98,8 @@ async fn upsert_relation_can_upsert_a_new_one() {
             .await
             .unwrap();
 
-        assert_eq!(relation.get_name(), "Longitude");
-        assert_eq!(*relation.get_format(), RelationFormat::Number);
+        assert_eq!(relation.name(), "Longitude");
+        assert_eq!(*relation.format(), RelationFormat::Number);
     })
     .await;
 }

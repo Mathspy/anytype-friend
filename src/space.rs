@@ -175,13 +175,13 @@ impl Space {
 
                 // TODO: This doesn't really handle simple cases such as upserting a relation of
                 // format object that was allowed new types
-                if *relation.get_format() == relation_spec.format {
+                if *relation.format() == relation_spec.format {
                     Ok(relation)
                 } else {
                     Err(tonic::Status::failed_precondition(format!(
                         "Relation `{}` exists but has a different format {} from requested format {}",
-                        relation.get_name(),
-                        relation.get_format(),
+                        relation.name(),
+                        relation.format(),
                         relation_spec.format
                     )))
                 }
