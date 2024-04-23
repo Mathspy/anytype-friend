@@ -3,7 +3,7 @@ use std::fmt::Display;
 use crate::prost_ext::{ProstConversionError, TryFromProst};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ObjectId(String);
+pub struct ObjectId(pub(crate) String);
 
 impl Display for ObjectId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

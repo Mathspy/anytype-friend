@@ -138,6 +138,12 @@ impl TryFromProst for RelationId {
     }
 }
 
+impl From<RelationId> for ObjectId {
+    fn from(value: RelationId) -> Self {
+        Self(value.0)
+    }
+}
+
 #[derive(Debug)]
 pub struct RelationKey {
     key: String,
