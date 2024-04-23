@@ -9,6 +9,7 @@ use crate::{
     prost_ext::{IntoProstValue, ProstConversionError, ProstStruct, TryFromProst},
 };
 
+#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RelationSpec {
     /// The name of the relation
     pub name: String,
@@ -29,7 +30,7 @@ impl From<RelationSpec> for prost_types::Struct {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum RelationFormat {
     Text,
     Number,
@@ -127,7 +128,7 @@ impl From<RelationFormat> for f64 {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RelationId(String);
 
 impl IntoProstValue for RelationId {
