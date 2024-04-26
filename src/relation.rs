@@ -174,6 +174,13 @@ impl Relation {
     pub fn format(&self) -> &RelationFormat {
         &self.format
     }
+
+    pub fn into_spec(self) -> RelationSpec {
+        RelationSpec {
+            name: self.name,
+            format: self.format,
+        }
+    }
 }
 
 impl TryFromProst for Relation {
