@@ -23,7 +23,7 @@ async fn object_type_can_obtain_a_preexisting_one_without_relations() {
         let space = client.default_space().await.unwrap().unwrap();
         let spec = ObjectTypeSpec {
             name: "Bookmark".to_string(),
-            relations: BTreeSet::from([
+            recommended_relations: BTreeSet::from([
                 RelationSpec {
                     name: "Tag".to_string(),
                     format: RelationFormat::MultiSelect,
@@ -93,7 +93,7 @@ async fn object_type_can_obtain_a_preexisting_one_with_relations() {
 
         let spec = ObjectTypeSpec {
             name: "Bookmark".to_string(),
-            relations: BTreeSet::from([
+            recommended_relations: BTreeSet::from([
                 tag_relation.into_spec(),
                 description_relation.into_spec(),
                 source_relation.into_spec(),
@@ -129,7 +129,7 @@ async fn object_type_fails_to_obtain_on_unmatched_recommended_relations() {
 
         let result = client.default_space().await.unwrap().unwrap().obtain_object_type(&ObjectTypeSpec {
             name: "Bookmark".to_string(),
-            relations: BTreeSet::from([
+            recommended_relations: BTreeSet::from([
                 RelationSpec {
                     name: "Tag".to_string(),
                     format: RelationFormat::MultiSelect,
@@ -164,7 +164,7 @@ async fn object_type_can_obtain_a_new_one_with_preexisting_relations() {
 
         let spec = ObjectTypeSpec {
             name: "NewType".to_string(),
-            relations: BTreeSet::from([RelationSpec {
+            recommended_relations: BTreeSet::from([RelationSpec {
                 name: "Tag".to_string(),
                 format: RelationFormat::MultiSelect,
             }]),
@@ -203,7 +203,7 @@ async fn object_type_can_obtain_a_new_one_with_new_relations() {
         };
         let spec = ObjectTypeSpec {
             name: "NewType".to_string(),
-            relations: BTreeSet::from([relation_spec.clone()]),
+            recommended_relations: BTreeSet::from([relation_spec.clone()]),
         };
 
         if space.get_object_type(&spec).await.unwrap().is_some() {

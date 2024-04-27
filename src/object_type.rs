@@ -11,7 +11,7 @@ use crate::{
 pub struct ObjectTypeSpec {
     /// The name of the object type
     pub name: String,
-    pub relations: BTreeSet<RelationSpec>,
+    pub recommended_relations: BTreeSet<RelationSpec>,
 }
 
 impl ObjectTypeSpec {

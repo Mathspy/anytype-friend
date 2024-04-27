@@ -238,7 +238,7 @@ impl Space {
                     .map(Relation::into_spec)
                     .collect::<BTreeSet<_>>();
 
-                if relations == object_type_spec.relations {
+                if relations == object_type_spec.recommended_relations {
                     Ok(Some(object_type))
                 } else {
                     Err(tonic::Status::failed_precondition(format!(
@@ -248,7 +248,7 @@ Requested recommended relations: {:?}
 Received recommended relations: {:?}",
                         object_type.name(),
                         relations,
-                        object_type_spec.relations
+                        object_type_spec.recommended_relations
                     )))
                 }
             }
@@ -264,7 +264,7 @@ Received recommended relations: {:?}",
         object_type_spec: &ObjectTypeSpec,
     ) -> Result<ObjectType, tonic::Status> {
         let relation_ids = object_type_spec
-            .relations
+            .recommended_relations
             .iter()
             .map(|relation_spec| async {
                 let relation = self.obtain_relation(relation_spec).await?;
