@@ -37,6 +37,7 @@ name = "anytype_friend"
 version = "0.1.0"
 dependencies = [
  "dirs",
+ "futures-util",
  "prost",
  "prost-types",
  "rand 0.8.5",
