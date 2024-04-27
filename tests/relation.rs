@@ -23,7 +23,7 @@ async fn relation_can_obtain_a_preexisting_one() {
             .await
             .unwrap()
             .unwrap()
-            .obtain_relation(RelationSpec {
+            .obtain_relation(&RelationSpec {
                 name: "Due date".to_string(),
                 format: RelationFormat::Date,
             })
@@ -56,7 +56,7 @@ async fn relation_fails_to_obtain_on_mismatched_format() {
             .await
             .unwrap()
             .unwrap()
-            .obtain_relation(RelationSpec {
+            .obtain_relation(&RelationSpec {
                 name: "Due date".to_string(),
                 format: RelationFormat::Text,
             })
@@ -91,7 +91,7 @@ async fn relation_can_obtain_a_new_one() {
             .await
             .unwrap()
             .unwrap()
-            .obtain_relation(RelationSpec {
+            .obtain_relation(&RelationSpec {
                 name: "Longitude".to_string(),
                 format: RelationFormat::Number,
             })

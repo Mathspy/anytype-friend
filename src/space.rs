@@ -122,7 +122,7 @@ impl Space {
 
     pub async fn get_relation(
         &self,
-        relation_spec: RelationSpec,
+        relation_spec: &RelationSpec,
     ) -> Result<Option<Relation>, tonic::Status> {
         use pb::models::block::content::dataview::filter::{Condition, Operator};
 
@@ -162,7 +162,7 @@ impl Space {
 
     pub async fn create_relation(
         &self,
-        relation_spec: RelationSpec,
+        relation_spec: &RelationSpec,
     ) -> Result<Relation, tonic::Status> {
         let response = self
             .client
@@ -170,7 +170,7 @@ impl Space {
             .object_create_relation(RequestWithToken {
                 request: pb::rpc::object::create_relation::Request {
                     space_id: self.info.account_space_id.clone(),
-                    details: Some(relation_spec.into()),
+                    details: Some(relation_spec.clone().into()),
                 },
                 token: &self.token,
             })
@@ -198,9 +198,9 @@ impl Space {
 
     pub async fn obtain_relation(
         &self,
-        relation_spec: RelationSpec,
+        relation_spec: &RelationSpec,
     ) -> Result<Relation, tonic::Status> {
-        match self.get_relation(relation_spec.clone()).await? {
+        match self.get_relation(relation_spec).await? {
             None => self.create_relation(relation_spec).await,
             Some(relation) => Ok(relation),
         }
