@@ -167,6 +167,10 @@ pub struct Relation {
 }
 
 impl Relation {
+    pub fn id(&self) -> &RelationId {
+        &self.id
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }

@@ -18,20 +18,20 @@ async fn relation_can_obtain_a_preexisting_one() {
             .await
             .unwrap();
 
-        let relation = client
-            .default_space()
-            .await
-            .unwrap()
-            .unwrap()
-            .obtain_relation(&RelationSpec {
-                name: "Due date".to_string(),
-                format: RelationFormat::Date,
-            })
-            .await
-            .unwrap();
-
+        let space = client.default_space().await.unwrap().unwrap();
+        let spec = RelationSpec {
+            name: "Due date".to_string(),
+            format: RelationFormat::Date,
+        };
+        let relation = match space.get_relation(&spec).await.unwrap() {
+            Some(relation) => relation,
+            None => panic!("Due date relation doesn't exist on a new space"),
+        };
         assert_eq!(relation.name(), "Due date");
         assert_eq!(*relation.format(), RelationFormat::Date);
+
+        let obtained_relation = space.obtain_relation(&spec).await.unwrap();
+        assert_eq!(relation.id(), obtained_relation.id());
     })
     .await;
 }
@@ -86,18 +86,16 @@ async fn relation_can_obtain_a_new_one() {
             .await
             .unwrap();
 
-        let relation = client
-            .default_space()
-            .await
-            .unwrap()
-            .unwrap()
-            .obtain_relation(&RelationSpec {
-                name: "Longitude".to_string(),
-                format: RelationFormat::Number,
-            })
-            .await
-            .unwrap();
+        let space = client.default_space().await.unwrap().unwrap();
+        let spec = RelationSpec {
+            name: "Longitude".to_string(),
+            format: RelationFormat::Number,
+        };
+        if space.get_relation(&spec).await.unwrap().is_some() {
+            unreachable!("Longtiude is now a default anytype relation");
+        }
 
+        let relation = space.obtain_relation(&spec).await.unwrap();
         assert_eq!(relation.name(), "Longitude");
         assert_eq!(*relation.format(), RelationFormat::Number);
     })
