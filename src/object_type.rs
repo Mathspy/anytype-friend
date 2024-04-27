@@ -1,4 +1,7 @@
-use std::{collections::BTreeSet, fmt::Display};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fmt::Display,
+};
 
 use crate::{
     prost_ext::{IntoProstValue, ProstConversionError, ProstStruct, TryFromProst},
@@ -9,6 +12,24 @@ pub struct ObjectTypeSpec {
     /// The name of the object type
     pub name: String,
     pub relations: BTreeSet<RelationSpec>,
+}
+
+impl ObjectTypeSpec {
+    pub(crate) fn to_struct(&self, relations: Vec<RelationId>) -> prost_types::Struct {
+        prost_types::Struct {
+            fields: BTreeMap::from([
+                ("name".to_string(), self.name.clone().into_prost()),
+                (
+                    "recommendedRelations".to_string(),
+                    relations
+                        .into_iter()
+                        .map(|relation_id| relation_id.into_prost())
+                        .collect::<Vec<_>>()
+                        .into_prost(),
+                ),
+            ]),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
