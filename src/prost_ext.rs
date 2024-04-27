@@ -237,7 +237,7 @@ impl ProstStruct {
         }
     }
 
-    pub fn take_enum<E: TryFrom<i32>>(
+    pub fn take_enum<E: TryFrom<i32, Error = prost::DecodeError>>(
         &mut self,
         field: &'static str,
     ) -> Result<E, ProstConversionError> {
