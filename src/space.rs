@@ -1,6 +1,9 @@
 use std::collections::BTreeSet;
 use std::ops::Not;
 
+use futures_util::stream::FuturesUnordered;
+use futures_util::TryStreamExt;
+
 use crate::object::ObjectId;
 use crate::object_type::{ObjectType, ObjectTypeSpec};
 use crate::pb::{
@@ -248,12 +251,61 @@ impl Space {
         }
     }
 
+    pub async fn create_object_type(
+        &self,
+        object_type_spec: &ObjectTypeSpec,
+    ) -> Result<ObjectType, tonic::Status> {
+        let relation_ids = object_type_spec
+            .relations
+            .iter()
+            .map(|relation_spec| async {
+                let relation = self.obtain_relation(relation_spec).await?;
+                Ok::<_, tonic::Status>(relation.into_id())
+            })
+            .collect::<FuturesUnordered<_>>()
+            .try_collect::<Vec<_>>()
+            .await?;
+
+        let response = self
+            .client
+            .clone()
+            .object_create_object_type(RequestWithToken {
+                request: pb::rpc::object::create_object_type::Request {
+                    space_id: self.info.account_space_id.clone(),
+                    details: Some(object_type_spec.to_struct(relation_ids)),
+
+                    ..Default::default()
+                },
+                token: &self.token,
+            })
+            .await?
+            .into_inner();
+
+        if let Some(error) = response.error {
+            use pb::rpc::object::create_object_type::response::error::Code;
+            match error.code() {
+                Code::Null => {}
+                Code::UnknownError => return Err(tonic::Status::unknown(error.description)),
+                Code::BadInput => return Err(tonic::Status::invalid_argument(error.description)),
+            }
+        }
+
+        let Some(details) = response.details else {
+            return Err(tonic::Status::internal(
+                "anytype-heart did not respond with a relation's details",
+            ));
+        };
+
+        ObjectType::try_from_prost(details)
+            .map_err(|error| tonic::Status::internal(format!("{error}")))
+    }
+
     pub async fn obtain_object_type(
         &self,
         object_type_spec: &ObjectTypeSpec,
     ) -> Result<ObjectType, tonic::Status> {
         match self.get_object_type(object_type_spec).await? {
-            None => todo!(),
+            None => self.create_object_type(object_type_spec).await,
             Some(object_type) => Ok(object_type),
         }
     }

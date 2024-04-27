@@ -171,6 +171,10 @@ impl Relation {
         &self.id
     }
 
+    pub fn into_id(self) -> RelationId {
+        self.id
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }
