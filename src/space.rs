@@ -120,14 +120,57 @@ impl Space {
         Ok(objects)
     }
 
-    async fn create_relation(&self, relation: RelationSpec) -> Result<Relation, tonic::Status> {
+    pub async fn get_relation(
+        &self,
+        relation_spec: RelationSpec,
+    ) -> Result<Option<Relation>, tonic::Status> {
+        use pb::models::block::content::dataview::filter::{Condition, Operator};
+
+        let mut relations = self
+            .search_objects::<Relation>(vec![Filter {
+                operator: Operator::And.into(),
+                relation_key: "name".to_string(),
+                condition: Condition::Equal.into(),
+                value: Some(relation_spec.name.clone().into_prost()),
+
+                ..Default::default()
+            }])
+            .await?;
+
+        match relations.len() {
+            0 => Ok(None),
+            1 => {
+                let relation = relations.swap_remove(0);
+
+                if *relation.format() == relation_spec.format {
+                    Ok(Some(relation))
+                } else {
+                    Err(tonic::Status::failed_precondition(format!(
+                        "Relation `{}` exists but has a different format {} from requested format {}",
+                        relation.name(),
+                        relation.format(),
+                        relation_spec.format
+                    )))
+                }
+            }
+            _ => Err(tonic::Status::failed_precondition(format!(
+                "More than one relation with same name {}",
+                relation_spec.name
+            ))),
+        }
+    }
+
+    pub async fn create_relation(
+        &self,
+        relation_spec: RelationSpec,
+    ) -> Result<Relation, tonic::Status> {
         let response = self
             .client
             .clone()
             .object_create_relation(RequestWithToken {
                 request: pb::rpc::object::create_relation::Request {
                     space_id: self.info.account_space_id.clone(),
-                    details: Some(relation.into()),
+                    details: Some(relation_spec.into()),
                 },
                 token: &self.token,
             })
@@ -157,41 +200,9 @@ impl Space {
         &self,
         relation_spec: RelationSpec,
     ) -> Result<Relation, tonic::Status> {
-        use pb::models::block::content::dataview::filter::{Condition, Operator};
-
-        let mut relations = self
-            .search_objects::<Relation>(vec![Filter {
-                operator: Operator::And.into(),
-                relation_key: "name".to_string(),
-                condition: Condition::Equal.into(),
-                value: Some(relation_spec.name.clone().into_prost()),
-
-                ..Default::default()
-            }])
-            .await?;
-
-        match relations.len() {
-            0 => self.create_relation(relation_spec).await,
-            1 => {
-                let relation = relations.swap_remove(0);
-
-                // TODO: This doesn't really handle simple cases such as upserting a relation of
-                // format object that was allowed new types
-                if *relation.format() == relation_spec.format {
-                    Ok(relation)
-                } else {
-                    Err(tonic::Status::failed_precondition(format!(
-                        "Relation `{}` exists but has a different format {} from requested format {}",
-                        relation.name(),
-                        relation.format(),
-                        relation_spec.format
-                    )))
-                }
-            }
-            _ => Err(tonic::Status::failed_precondition(format!(
-                "More than one relation with same name {}",
-                relation_spec.name
-            ))),
+        match self.get_relation(relation_spec.clone()).await? {
+            None => self.create_relation(relation_spec).await,
+            Some(relation) => Ok(relation),
         }
     }
 
