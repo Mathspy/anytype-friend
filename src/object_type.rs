@@ -43,6 +43,10 @@ pub struct ObjectType {
 }
 
 impl ObjectType {
+    pub fn id(&self) -> &ObjectTypeId {
+        &self.id
+    }
+
     pub fn get_name(&self) -> &str {
         &self.name
     }
