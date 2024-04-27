@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     prost_ext::{IntoProstValue, ProstConversionError, ProstStruct, TryFromProst},
-    relation::{RelationId, RelationSpec},
+    relation::{Relation, RelationId, RelationSpec},
 };
 
 pub struct ObjectTypeSpec {
@@ -55,29 +55,14 @@ impl TryFromProst for ObjectTypeId {
     }
 }
 
-#[derive(Debug)]
-pub struct ObjectType {
+pub(crate) struct ObjectTypeUnresolved {
     id: ObjectTypeId,
     name: String,
     is_hidden: bool,
     pub(crate) recommended_relations: BTreeSet<RelationId>,
 }
 
-impl ObjectType {
-    pub fn id(&self) -> &ObjectTypeId {
-        &self.id
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn recommended_relations(&self) -> &BTreeSet<RelationId> {
-        &self.recommended_relations
-    }
-}
-
-impl TryFromProst for ObjectType {
+impl TryFromProst for ObjectTypeUnresolved {
     type Input = prost_types::Struct;
 
     fn try_from_prost(input: Self::Input) -> Result<Self, ProstConversionError>
@@ -105,11 +90,44 @@ impl TryFromProst for ObjectType {
     }
 }
 
-impl crate::space::SearchOutput for ObjectType {
+impl crate::space::SearchOutput for ObjectTypeUnresolved {
     const LAYOUT: crate::pb::models::object_type::Layout =
         crate::pb::models::object_type::Layout::ObjectType;
 
     fn is_hidden(&self) -> bool {
         self.is_hidden
+    }
+}
+
+impl ObjectTypeUnresolved {
+    pub fn resolve(self, recommended_relations: BTreeSet<Relation>) -> ObjectType {
+        ObjectType {
+            id: self.id,
+            name: self.name,
+            is_hidden: self.is_hidden,
+            recommended_relations,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ObjectType {
+    id: ObjectTypeId,
+    name: String,
+    is_hidden: bool,
+    recommended_relations: BTreeSet<Relation>,
+}
+
+impl ObjectType {
+    pub fn id(&self) -> &ObjectTypeId {
+        &self.id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn recommended_relations(&self) -> &BTreeSet<Relation> {
+        &self.recommended_relations
     }
 }

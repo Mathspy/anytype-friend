@@ -5,7 +5,7 @@ use futures_util::stream::FuturesUnordered;
 use futures_util::TryStreamExt;
 
 use crate::object::ObjectId;
-use crate::object_type::{ObjectType, ObjectTypeSpec};
+use crate::object_type::{ObjectType, ObjectTypeSpec, ObjectTypeUnresolved};
 use crate::pb::{
     self, client_commands_client::ClientCommandsClient, models::block::content::dataview::Filter,
 };
@@ -216,7 +216,7 @@ impl Space {
         use pb::models::block::content::dataview::filter::{Condition, Operator};
 
         let mut object_types = self
-            .search_objects::<ObjectType>(vec![Filter {
+            .search_objects::<ObjectTypeUnresolved>(vec![Filter {
                 operator: Operator::And.into(),
                 relation_key: "name".to_string(),
                 condition: Condition::Like.into(),
@@ -231,23 +231,27 @@ impl Space {
             1 => {
                 let object_type = object_types.swap_remove(0);
 
-                let relations = self
+                let recommended_relations = self
                     .get_objects::<Relation>(object_type.recommended_relations.clone())
                     .await?
+                    .into_iter()
+                    .collect::<BTreeSet<_>>();
+                let relations_specs = recommended_relations
+                    .clone()
                     .into_iter()
                     .map(Relation::into_spec)
                     .collect::<BTreeSet<_>>();
 
-                if relations == object_type_spec.recommended_relations {
-                    Ok(Some(object_type))
+                if relations_specs == object_type_spec.recommended_relations {
+                    Ok(Some(object_type.resolve(recommended_relations)))
                 } else {
                     Err(tonic::Status::failed_precondition(format!(
                         "ObjectType `{}` exists but has different recommended relations from requested recommended relations:
 Requested recommended relations: {:?}
 
 Received recommended relations: {:?}",
-                        object_type.name(),
-                        relations,
+                        object_type_spec.name,
+                        relations_specs,
                         object_type_spec.recommended_relations
                     )))
                 }
@@ -263,16 +267,18 @@ Received recommended relations: {:?}",
         &self,
         object_type_spec: &ObjectTypeSpec,
     ) -> Result<ObjectType, tonic::Status> {
-        let relation_ids = object_type_spec
+        let recommended_relations = object_type_spec
             .recommended_relations
             .iter()
-            .map(|relation_spec| async {
-                let relation = self.obtain_relation(relation_spec).await?;
-                Ok::<_, tonic::Status>(relation.into_id())
-            })
+            .map(|relation_spec| async { self.obtain_relation(relation_spec).await })
             .collect::<FuturesUnordered<_>>()
-            .try_collect::<Vec<_>>()
+            .try_collect::<BTreeSet<_>>()
             .await?;
+        let relation_ids = recommended_relations
+            .clone()
+            .into_iter()
+            .map(|relation| relation.into_id())
+            .collect::<Vec<_>>();
 
         let response = self
             .client
@@ -304,7 +310,8 @@ Received recommended relations: {:?}",
             ));
         };
 
-        ObjectType::try_from_prost(details)
+        ObjectTypeUnresolved::try_from_prost(details)
+            .map(|object_type| object_type.resolve(recommended_relations))
             .map_err(|error| tonic::Status::internal(format!("{error}")))
     }
 

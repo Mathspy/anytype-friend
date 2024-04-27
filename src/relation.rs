@@ -158,12 +158,12 @@ impl From<RelationId> for ObjectId {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RelationKey {
     key: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Relation {
     id: RelationId,
     name: String,
