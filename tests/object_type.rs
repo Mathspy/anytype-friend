@@ -43,7 +43,7 @@ async fn object_type_can_obtain_a_preexisting_one_without_relations() {
             Some(object_type) => object_type,
             None => panic!("Bookmark object type doesn't exist on a new space"),
         };
-        assert_eq!(object_type.get_name(), "Bookmark");
+        assert_eq!(object_type.name(), "Bookmark");
 
         let obtained_object_type = space.obtain_object_type(&spec).await.unwrap();
         assert_eq!(object_type.id(), obtained_object_type.id());
@@ -104,7 +104,7 @@ async fn object_type_can_obtain_a_preexisting_one_with_relations() {
             Some(object_type) => object_type,
             None => panic!("Bookmark object type doesn't exist on a new space"),
         };
-        assert_eq!(object_type.get_name(), "Bookmark");
+        assert_eq!(object_type.name(), "Bookmark");
 
         let obtained_object_type = space.obtain_object_type(&spec).await.unwrap();
         assert_eq!(object_type.id(), obtained_object_type.id());
@@ -142,7 +142,7 @@ async fn object_type_can_obtain_a_new_one_with_preexisting_relations() {
         }
 
         let object_type = space.obtain_object_type(&spec).await.unwrap();
-        assert_eq!(object_type.get_name(), "NewType");
+        assert_eq!(object_type.name(), "NewType");
     })
     .await;
 }
@@ -178,7 +178,7 @@ async fn object_type_can_obtain_a_new_one_with_new_relations() {
         }
 
         let object_type = space.obtain_object_type(&spec).await.unwrap();
-        assert_eq!(object_type.get_name(), "NewType");
+        assert_eq!(object_type.name(), "NewType");
 
         let relation = space.get_relation(&relation_spec).await.unwrap();
         match relation {

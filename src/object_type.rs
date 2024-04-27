@@ -68,7 +68,7 @@ impl ObjectType {
         &self.id
     }
 
-    pub fn get_name(&self) -> &str {
+    pub fn name(&self) -> &str {
         &self.name
     }
 }
