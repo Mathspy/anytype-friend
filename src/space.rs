@@ -206,10 +206,10 @@ impl Space {
         }
     }
 
-    pub async fn obtain_object_type(
+    pub async fn get_object_type(
         &self,
         object_type_spec: ObjectTypeSpec,
-    ) -> Result<ObjectType, tonic::Status> {
+    ) -> Result<Option<ObjectType>, tonic::Status> {
         use pb::models::block::content::dataview::filter::{Condition, Operator};
 
         let mut object_types = self
@@ -224,7 +224,7 @@ impl Space {
             .await?;
 
         match object_types.len() {
-            0 => todo!(),
+            0 => Ok(None),
             1 => {
                 let object_type = object_types.swap_remove(0);
 
@@ -236,7 +236,7 @@ impl Space {
                     .collect::<BTreeSet<_>>();
 
                 if relations == object_type_spec.relations {
-                    Ok(object_type)
+                    Ok(Some(object_type))
                 } else {
                     todo!()
                 }
@@ -245,6 +245,16 @@ impl Space {
                 "More than one object type with same name {}",
                 object_type_spec.name
             ))),
+        }
+    }
+
+    pub async fn obtain_object_type(
+        &self,
+        object_type_spec: ObjectTypeSpec,
+    ) -> Result<ObjectType, tonic::Status> {
+        match self.get_object_type(object_type_spec).await? {
+            None => todo!(),
+            Some(object_type) => Ok(object_type),
         }
     }
 }
