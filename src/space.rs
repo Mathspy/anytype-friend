@@ -153,7 +153,7 @@ impl Space {
             .map_err(|error| tonic::Status::internal(format!("{error}")))
     }
 
-    pub async fn upsert_relation(
+    pub async fn obtain_relation(
         &self,
         relation_spec: RelationSpec,
     ) -> Result<Relation, tonic::Status> {

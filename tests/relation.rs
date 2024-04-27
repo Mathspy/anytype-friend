@@ -4,7 +4,7 @@ use anytype_friend::{AnytypeClient, NetworkSync, RelationFormat, RelationSpec};
 use utils::run_with_service;
 
 #[tokio::test]
-async fn upsert_relation_can_upsert_a_preexisting_one() {
+async fn relation_can_obtain_a_preexisting_one() {
     let temp_dir = tempdir::TempDir::new("anytype-friend").unwrap();
     let temp_dir_path = temp_dir.path();
 
@@ -23,7 +23,7 @@ async fn upsert_relation_can_upsert_a_preexisting_one() {
             .await
             .unwrap()
             .unwrap()
-            .upsert_relation(RelationSpec {
+            .obtain_relation(RelationSpec {
                 name: "Due date".to_string(),
                 format: RelationFormat::Date,
             })
@@ -37,7 +37,7 @@ async fn upsert_relation_can_upsert_a_preexisting_one() {
 }
 
 #[tokio::test]
-async fn upsert_relation_fails_to_upsert_on_mismatched_format() {
+async fn relation_fails_to_obtain_on_mismatched_format() {
     let temp_dir = tempdir::TempDir::new("anytype-friend").unwrap();
     let temp_dir_path = temp_dir.path();
 
@@ -56,7 +56,7 @@ async fn upsert_relation_fails_to_upsert_on_mismatched_format() {
             .await
             .unwrap()
             .unwrap()
-            .upsert_relation(RelationSpec {
+            .obtain_relation(RelationSpec {
                 name: "Due date".to_string(),
                 format: RelationFormat::Text,
             })
@@ -72,7 +72,7 @@ async fn upsert_relation_fails_to_upsert_on_mismatched_format() {
 }
 
 #[tokio::test]
-async fn upsert_relation_can_upsert_a_new_one() {
+async fn relation_can_obtain_a_new_one() {
     let temp_dir = tempdir::TempDir::new("anytype-friend").unwrap();
     let temp_dir_path = temp_dir.path();
 
@@ -91,7 +91,7 @@ async fn upsert_relation_can_upsert_a_new_one() {
             .await
             .unwrap()
             .unwrap()
-            .upsert_relation(RelationSpec {
+            .obtain_relation(RelationSpec {
                 name: "Longitude".to_string(),
                 format: RelationFormat::Number,
             })

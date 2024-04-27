@@ -65,7 +65,7 @@ async fn upsert_object_type_can_upsert_a_preexisting_one_with_relations() {
 
         let space = client.default_space().await.unwrap().unwrap();
         let tag_relation = space
-            .upsert_relation(RelationSpec {
+            .obtain_relation(RelationSpec {
                 name: "Tag".to_string(),
                 format: RelationFormat::MultiSelect,
             })
@@ -73,7 +73,7 @@ async fn upsert_object_type_can_upsert_a_preexisting_one_with_relations() {
             .unwrap();
 
         let description_relation = space
-            .upsert_relation(RelationSpec {
+            .obtain_relation(RelationSpec {
                 name: "Description".to_string(),
                 format: RelationFormat::Text,
             })
@@ -81,7 +81,7 @@ async fn upsert_object_type_can_upsert_a_preexisting_one_with_relations() {
             .unwrap();
 
         let source_relation = space
-            .upsert_relation(RelationSpec {
+            .obtain_relation(RelationSpec {
                 name: "Source".to_string(),
                 format: RelationFormat::Url,
             })
