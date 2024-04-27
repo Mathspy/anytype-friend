@@ -23,7 +23,7 @@ async fn object_type_can_obtain_a_preexisting_one_without_relations() {
         let space = client.default_space().await.unwrap().unwrap();
 
         let object_type = space
-            .obtain_object_type(ObjectTypeSpec {
+            .obtain_object_type(&ObjectTypeSpec {
                 name: "Bookmark".to_string(),
                 relations: BTreeSet::from([
                     RelationSpec {
@@ -89,7 +89,7 @@ async fn object_type_can_obtain_a_preexisting_one_with_relations() {
             .unwrap();
 
         let object_type = space
-            .obtain_object_type(ObjectTypeSpec {
+            .obtain_object_type(&ObjectTypeSpec {
                 name: "Bookmark".to_string(),
                 relations: BTreeSet::from([
                     tag_relation.into_spec(),

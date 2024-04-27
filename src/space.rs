@@ -208,7 +208,7 @@ impl Space {
 
     pub async fn get_object_type(
         &self,
-        object_type_spec: ObjectTypeSpec,
+        object_type_spec: &ObjectTypeSpec,
     ) -> Result<Option<ObjectType>, tonic::Status> {
         use pb::models::block::content::dataview::filter::{Condition, Operator};
 
@@ -250,7 +250,7 @@ impl Space {
 
     pub async fn obtain_object_type(
         &self,
-        object_type_spec: ObjectTypeSpec,
+        object_type_spec: &ObjectTypeSpec,
     ) -> Result<ObjectType, tonic::Status> {
         match self.get_object_type(object_type_spec).await? {
             None => todo!(),
