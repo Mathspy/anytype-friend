@@ -113,6 +113,39 @@ async fn object_type_can_obtain_a_preexisting_one_with_relations() {
 }
 
 #[tokio::test]
+async fn object_type_fails_to_obtain_on_unmatched_recommended_relations() {
+    let temp_dir = tempdir::TempDir::new("anytype-friend").unwrap();
+    let temp_dir_path = temp_dir.path();
+
+    run_with_service(|port| async move {
+        let (_, client) = AnytypeClient::connect(&format!("http://127.0.0.1:{port}"))
+            .await
+            .unwrap()
+            .with_network_sync(NetworkSync::NoSync)
+            .with_root_path(temp_dir_path)
+            .create_account("Test Client")
+            .await
+            .unwrap();
+
+        let result = client.default_space().await.unwrap().unwrap().obtain_object_type(&ObjectTypeSpec {
+            name: "Bookmark".to_string(),
+            relations: BTreeSet::from([
+                RelationSpec {
+                    name: "Tag".to_string(),
+                    format: RelationFormat::MultiSelect,
+                },
+            ]),
+        }).await.unwrap_err();
+
+        // TODO: This should be an enum variant of an error type we control instead of a string
+        if !result.message().contains("ObjectType `Bookmark` exists but has different recommended relations from requested recommended relations") {
+          panic!("Unexpected error on obtaining object {} {}", result.code(), result.message());
+        }
+    })
+    .await;
+}
+
+#[tokio::test]
 async fn object_type_can_obtain_a_new_one_with_preexisting_relations() {
     let temp_dir = tempdir::TempDir::new("anytype-friend").unwrap();
     let temp_dir_path = temp_dir.path();

@@ -241,7 +241,15 @@ impl Space {
                 if relations == object_type_spec.relations {
                     Ok(Some(object_type))
                 } else {
-                    todo!()
+                    Err(tonic::Status::failed_precondition(format!(
+                        "ObjectType `{}` exists but has different recommended relations from requested recommended relations:
+Requested recommended relations: {:?}
+
+Received recommended relations: {:?}",
+                        object_type.name(),
+                        relations,
+                        object_type_spec.relations
+                    )))
                 }
             }
             _ => Err(tonic::Status::failed_precondition(format!(
