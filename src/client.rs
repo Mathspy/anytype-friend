@@ -14,6 +14,7 @@ pub struct AnytypeClient {
 pub enum NetworkSync {
     Sync,
     LocalOnly,
+    NoSync,
 }
 
 pub struct AuthorizedAnytypeClient {
@@ -346,13 +347,13 @@ impl AnytypeClient {
         use pb::rpc::account::NetworkMode;
 
         let disable_local_network_sync = match &network_sync {
-            NetworkSync::Sync => false,
-            NetworkSync::LocalOnly => true,
+            NetworkSync::Sync | NetworkSync::LocalOnly => false,
+            NetworkSync::NoSync => true,
         };
 
         let network_mode = match &network_sync {
             NetworkSync::Sync => NetworkMode::DefaultConfig,
-            NetworkSync::LocalOnly => NetworkMode::LocalOnly,
+            NetworkSync::LocalOnly | NetworkSync::NoSync => NetworkMode::LocalOnly,
         };
 
         Self {

@@ -12,7 +12,7 @@ async fn relation_can_obtain_a_preexisting_one() {
         let (_, client) = AnytypeClient::connect(&format!("http://127.0.0.1:{port}"))
             .await
             .unwrap()
-            .with_network_sync(NetworkSync::LocalOnly)
+            .with_network_sync(NetworkSync::NoSync)
             .with_root_path(temp_dir_path)
             .create_account("Test Client")
             .await
@@ -45,7 +45,7 @@ async fn relation_fails_to_obtain_on_mismatched_format() {
         let (_, client) = AnytypeClient::connect(&format!("http://127.0.0.1:{port}"))
             .await
             .unwrap()
-            .with_network_sync(NetworkSync::LocalOnly)
+            .with_network_sync(NetworkSync::NoSync)
             .with_root_path(temp_dir_path)
             .create_account("Test Client")
             .await
@@ -80,7 +80,7 @@ async fn relation_can_obtain_a_new_one() {
         let (_, client) = AnytypeClient::connect(&format!("http://127.0.0.1:{port}"))
             .await
             .unwrap()
-            .with_network_sync(NetworkSync::LocalOnly)
+            .with_network_sync(NetworkSync::NoSync)
             .with_root_path(temp_dir_path)
             .create_account("Test Client")
             .await

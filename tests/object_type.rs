@@ -14,7 +14,7 @@ async fn object_type_can_obtain_a_preexisting_one_without_relations() {
         let (_, client) = AnytypeClient::connect(&format!("http://127.0.0.1:{port}"))
             .await
             .unwrap()
-            .with_network_sync(NetworkSync::LocalOnly)
+            .with_network_sync(NetworkSync::NoSync)
             .with_root_path(temp_dir_path)
             .create_account("Test Client")
             .await
@@ -60,7 +60,7 @@ async fn object_type_can_obtain_a_preexisting_one_with_relations() {
         let (_, client) = AnytypeClient::connect(&format!("http://127.0.0.1:{port}"))
             .await
             .unwrap()
-            .with_network_sync(NetworkSync::LocalOnly)
+            .with_network_sync(NetworkSync::NoSync)
             .with_root_path(temp_dir_path)
             .create_account("Test Client")
             .await
@@ -121,7 +121,7 @@ async fn object_type_can_obtain_a_new_one_with_preexisting_relations() {
         let (_, client) = AnytypeClient::connect(&format!("http://127.0.0.1:{port}"))
             .await
             .unwrap()
-            .with_network_sync(NetworkSync::LocalOnly)
+            .with_network_sync(NetworkSync::NoSync)
             .with_root_path(temp_dir_path)
             .create_account("Test Client")
             .await
@@ -156,7 +156,7 @@ async fn object_type_can_obtain_a_new_one_with_new_relations() {
         let (_, client) = AnytypeClient::connect(&format!("http://127.0.0.1:{port}"))
             .await
             .unwrap()
-            .with_network_sync(NetworkSync::LocalOnly)
+            .with_network_sync(NetworkSync::NoSync)
             .with_root_path(temp_dir_path)
             .create_account("Test Client")
             .await
