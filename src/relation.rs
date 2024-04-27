@@ -132,6 +132,12 @@ impl From<RelationFormat> for f64 {
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RelationId(String);
 
+impl Display for RelationId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
 impl IntoProstValue for RelationId {
     fn into_prost(self) -> prost_types::Value {
         self.0.into_prost()

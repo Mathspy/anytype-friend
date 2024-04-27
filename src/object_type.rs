@@ -71,6 +71,10 @@ impl ObjectType {
     pub fn name(&self) -> &str {
         &self.name
     }
+
+    pub fn recommended_relations(&self) -> &BTreeSet<RelationId> {
+        &self.recommended_relations
+    }
 }
 
 impl TryFromProst for ObjectType {
