@@ -6,7 +6,7 @@ use anytype_friend::{AnytypeClient, NetworkSync, ObjectTypeSpec, RelationFormat,
 use utils::run_with_service;
 
 #[tokio::test]
-async fn upsert_object_type_can_upsert_a_preexisting_one_without_relations() {
+async fn object_type_can_obtain_a_preexisting_one_without_relations() {
     let temp_dir = tempdir::TempDir::new("anytype-friend").unwrap();
     let temp_dir_path = temp_dir.path();
 
@@ -23,7 +23,7 @@ async fn upsert_object_type_can_upsert_a_preexisting_one_without_relations() {
         let space = client.default_space().await.unwrap().unwrap();
 
         let object_type = space
-            .upsert_object_type(ObjectTypeSpec {
+            .obtain_object_type(ObjectTypeSpec {
                 name: "Bookmark".to_string(),
                 relations: BTreeSet::from([
                     RelationSpec {
@@ -49,7 +49,7 @@ async fn upsert_object_type_can_upsert_a_preexisting_one_without_relations() {
 }
 
 #[tokio::test]
-async fn upsert_object_type_can_upsert_a_preexisting_one_with_relations() {
+async fn object_type_can_obtain_a_preexisting_one_with_relations() {
     let temp_dir = tempdir::TempDir::new("anytype-friend").unwrap();
     let temp_dir_path = temp_dir.path();
 
@@ -89,7 +89,7 @@ async fn upsert_object_type_can_upsert_a_preexisting_one_with_relations() {
             .unwrap();
 
         let object_type = space
-            .upsert_object_type(ObjectTypeSpec {
+            .obtain_object_type(ObjectTypeSpec {
                 name: "Bookmark".to_string(),
                 relations: BTreeSet::from([
                     tag_relation.into_spec(),

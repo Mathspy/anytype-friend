@@ -206,7 +206,7 @@ impl Space {
         }
     }
 
-    pub async fn upsert_object_type(
+    pub async fn obtain_object_type(
         &self,
         object_type_spec: ObjectTypeSpec,
     ) -> Result<ObjectType, tonic::Status> {
