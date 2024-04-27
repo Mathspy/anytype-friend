@@ -111,3 +111,83 @@ async fn object_type_can_obtain_a_preexisting_one_with_relations() {
     })
     .await;
 }
+
+#[tokio::test]
+async fn object_type_can_obtain_a_new_one_with_preexisting_relations() {
+    let temp_dir = tempdir::TempDir::new("anytype-friend").unwrap();
+    let temp_dir_path = temp_dir.path();
+
+    run_with_service(|port| async move {
+        let (_, client) = AnytypeClient::connect(&format!("http://127.0.0.1:{port}"))
+            .await
+            .unwrap()
+            .with_network_sync(NetworkSync::LocalOnly)
+            .with_root_path(temp_dir_path)
+            .create_account("Test Client")
+            .await
+            .unwrap();
+
+        let space = client.default_space().await.unwrap().unwrap();
+
+        let spec = ObjectTypeSpec {
+            name: "NewType".to_string(),
+            relations: BTreeSet::from([RelationSpec {
+                name: "Tag".to_string(),
+                format: RelationFormat::MultiSelect,
+            }]),
+        };
+
+        if space.get_object_type(&spec).await.unwrap().is_some() {
+            unreachable!("NewType is now a default anytype object type");
+        }
+
+        let object_type = space.obtain_object_type(&spec).await.unwrap();
+        assert_eq!(object_type.get_name(), "NewType");
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn object_type_can_obtain_a_new_one_with_new_relations() {
+    let temp_dir = tempdir::TempDir::new("anytype-friend").unwrap();
+    let temp_dir_path = temp_dir.path();
+
+    run_with_service(|port| async move {
+        let (_, client) = AnytypeClient::connect(&format!("http://127.0.0.1:{port}"))
+            .await
+            .unwrap()
+            .with_network_sync(NetworkSync::LocalOnly)
+            .with_root_path(temp_dir_path)
+            .create_account("Test Client")
+            .await
+            .unwrap();
+
+        let space = client.default_space().await.unwrap().unwrap();
+
+        let relation_spec = RelationSpec {
+            name: "NewRelation".to_string(),
+            format: RelationFormat::Text,
+        };
+        let spec = ObjectTypeSpec {
+            name: "NewType".to_string(),
+            relations: BTreeSet::from([relation_spec.clone()]),
+        };
+
+        if space.get_object_type(&spec).await.unwrap().is_some() {
+            unreachable!("NewType is now a default anytype object type");
+        }
+
+        let object_type = space.obtain_object_type(&spec).await.unwrap();
+        assert_eq!(object_type.get_name(), "NewType");
+
+        let relation = space.get_relation(&relation_spec).await.unwrap();
+        match relation {
+            None => panic!("NewRelation was not created"),
+            Some(relation) => {
+                assert_eq!(relation.name(), "NewRelation");
+                assert_eq!(*relation.format(), RelationFormat::Text);
+            }
+        }
+    })
+    .await;
+}
