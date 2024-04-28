@@ -6,6 +6,7 @@ use std::{
 use crate::{
     prost_ext::{IntoProstValue, ProstConversionError, ProstStruct, TryFromProst},
     relation::{Relation, RelationId, RelationSpec},
+    unique_key::UniqueKey,
 };
 
 pub struct ObjectTypeSpec {
@@ -59,6 +60,7 @@ pub(crate) struct ObjectTypeUnresolved {
     id: ObjectTypeId,
     name: String,
     is_hidden: bool,
+    unique_key: UniqueKey,
     pub(crate) recommended_relations: BTreeSet<RelationId>,
 }
 
@@ -79,12 +81,14 @@ impl TryFromProst for ObjectTypeUnresolved {
         let id = value.take::<ObjectTypeId>("id")?;
         let name = value.take::<String>("name")?;
         let is_hidden = value.take_optional::<bool>("isHidden")?.unwrap_or_default();
+        let unique_key = value.take::<UniqueKey>("uniqueKey")?;
         let recommended_relations = value.take::<BTreeSet<RelationId>>("recommendedRelations")?;
 
         Ok(Self {
             id,
             name,
             is_hidden,
+            unique_key,
             recommended_relations,
         })
     }
@@ -105,6 +109,7 @@ impl ObjectTypeUnresolved {
             id: self.id,
             name: self.name,
             is_hidden: self.is_hidden,
+            unique_key: self.unique_key,
             recommended_relations,
         }
     }
@@ -115,6 +120,7 @@ pub struct ObjectType {
     id: ObjectTypeId,
     name: String,
     is_hidden: bool,
+    pub(crate) unique_key: UniqueKey,
     recommended_relations: BTreeSet<Relation>,
 }
 

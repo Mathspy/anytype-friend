@@ -5,6 +5,7 @@ mod prost_ext;
 mod relation;
 mod request;
 mod space;
+mod unique_key;
 mod pb {
     pub(crate) mod models {
         tonic::include_proto!("anytype.model");
