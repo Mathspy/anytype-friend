@@ -312,7 +312,7 @@ Received recommended relations: {:?}",
 
         let Some(details) = response.details else {
             return Err(tonic::Status::internal(
-                "anytype-heart did not respond with a relation's details",
+                "anytype-heart did not respond with a object type's details",
             ));
         };
 
