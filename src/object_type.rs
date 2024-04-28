@@ -108,7 +108,6 @@ impl ObjectTypeUnresolved {
         ObjectType {
             id: self.id,
             name: self.name,
-            is_hidden: self.is_hidden,
             unique_key: self.unique_key,
             recommended_relations,
         }
@@ -119,7 +118,6 @@ impl ObjectTypeUnresolved {
 pub struct ObjectType {
     id: ObjectTypeId,
     name: String,
-    is_hidden: bool,
     pub(crate) unique_key: UniqueKey,
     recommended_relations: BTreeSet<Relation>,
 }
