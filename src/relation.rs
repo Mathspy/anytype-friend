@@ -3,6 +3,8 @@ use std::{
     fmt::Display,
 };
 
+use chrono::NaiveDateTime;
+
 use crate::{
     object::ObjectId,
     object_type::ObjectTypeId,
@@ -179,7 +181,7 @@ pub enum RelationValue {
     // TODO:
     // Select
     // MultiSelect
-    // Date
+    Date(NaiveDateTime),
     // FileOrMedia
     // Checkbox
     // Url
@@ -193,6 +195,7 @@ impl IntoProstValue for RelationValue {
         match self {
             RelationValue::Text(string) => string.into_prost(),
             RelationValue::Number(number) => number.into_prost(),
+            RelationValue::Date(datetime) => (datetime.and_utc().timestamp() as f64).into_prost(),
         }
     }
 }

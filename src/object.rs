@@ -3,6 +3,8 @@ use std::{
     fmt::Display,
 };
 
+use chrono::DateTime;
+
 use crate::{
     object_type::ObjectType,
     prost_ext::{IntoProstValue, ProstConversionError, ProstStruct, TryFromProst},
@@ -124,6 +126,12 @@ impl Object {
                 .expect("unreachable"),
             RelationFormat::Number => f64::try_from_prost(kind)
                 .map(RelationValue::Number)
+                .map(Some)
+                .expect("unreachable"),
+            RelationFormat::Date => f64::try_from_prost(kind)
+                .map(|number| DateTime::from_timestamp(number as i64, 0).expect("unreachable"))
+                .map(|datetime| datetime.naive_utc())
+                .map(RelationValue::Date)
                 .map(Some)
                 .expect("unreachable"),
             _ => todo!(),
