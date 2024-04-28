@@ -34,7 +34,7 @@ impl ObjectTypeSpec {
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ObjectTypeId(String);
+pub struct ObjectTypeId(pub(crate) String);
 
 impl Display for ObjectTypeId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

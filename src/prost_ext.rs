@@ -245,4 +245,8 @@ impl ProstStruct {
 
         E::try_from(number).map_err(|_| ProstConversionError::InvalidEnumValue(number))
     }
+
+    pub fn into_inner(self) -> prost_types::Struct {
+        self.inner
+    }
 }

@@ -4,12 +4,12 @@ use std::ops::Not;
 use futures_util::stream::FuturesUnordered;
 use futures_util::TryStreamExt;
 
-use crate::object::ObjectId;
+use crate::object::{Object, ObjectDescription, ObjectId};
 use crate::object_type::{ObjectType, ObjectTypeSpec, ObjectTypeUnresolved};
 use crate::pb::{
     self, client_commands_client::ClientCommandsClient, models::block::content::dataview::Filter,
 };
-use crate::prost_ext::{IntoProstValue, TryFromProst};
+use crate::prost_ext::{IntoProstValue, ProstStruct, TryFromProst};
 use crate::relation::{Relation, RelationSpec};
 use crate::request::RequestWithToken;
 
@@ -329,5 +329,40 @@ Received recommended relations: {:?}",
             None => self.create_object_type(object_type_spec).await,
             Some(object_type) => Ok(object_type),
         }
+    }
+
+    pub async fn create_object(&self, object: ObjectDescription) -> Result<Object, tonic::Status> {
+        let response = self
+            .client
+            .clone()
+            .object_create(RequestWithToken {
+                request: pb::rpc::object::create::Request {
+                    space_id: self.info.account_space_id.clone(),
+                    object_type_unique_key: object.ty.unique_key.clone().0,
+                    details: Some(object.into()),
+
+                    ..Default::default()
+                },
+                token: &self.token,
+            })
+            .await?
+            .into_inner();
+
+        if let Some(error) = response.error {
+            use pb::rpc::object::create::response::error::Code;
+            match error.code() {
+                Code::Null => {}
+                Code::UnknownError => return Err(tonic::Status::unknown(error.description)),
+                Code::BadInput => return Err(tonic::Status::invalid_argument(error.description)),
+            }
+        }
+
+        let Some(details) = response.details else {
+            return Err(tonic::Status::internal(
+                "anytype-heart did not respond with a object's details",
+            ));
+        };
+
+        Object::try_from_prost(details).map_err(|error| tonic::Status::internal(format!("{error}")))
     }
 }

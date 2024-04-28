@@ -15,6 +15,7 @@ mod pb {
 }
 
 pub use client::{AnytypeClient, AuthorizedAnytypeClient, NetworkSync};
+pub use object::ObjectDescription;
 pub use object_type::ObjectTypeSpec;
-pub use relation::{RelationFormat, RelationSpec};
+pub use relation::{Relation, RelationFormat, RelationSpec, RelationValue};
 pub use space::Space;
