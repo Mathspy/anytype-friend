@@ -138,6 +138,10 @@ impl Object {
                 .map(RelationValue::Checkbox)
                 .map(Some)
                 .expect("unreachable"),
+            RelationFormat::Url => String::try_from_prost(kind)
+                .map(RelationValue::Url)
+                .map(Some)
+                .expect("unreachable"),
 
             _ => todo!(),
         }
