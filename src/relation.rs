@@ -172,6 +172,31 @@ impl TryFromProst for RelationKey {
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub enum RelationValue {
+    Text(String),
+    Number(f64),
+    // TODO:
+    // Select
+    // MultiSelect
+    // Date
+    // FileOrMedia
+    // Checkbox
+    // Url
+    // Email
+    // Phone
+    // Object
+}
+
+impl IntoProstValue for RelationValue {
+    fn into_prost(self) -> prost_types::Value {
+        match self {
+            RelationValue::Text(string) => string.into_prost(),
+            RelationValue::Number(number) => number.into_prost(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Relation {
     id: RelationId,
