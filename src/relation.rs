@@ -229,6 +229,13 @@ impl Relation {
             format: self.format,
         }
     }
+
+    pub fn as_spec(&self) -> RelationSpec {
+        RelationSpec {
+            name: self.name.clone(),
+            format: self.format.clone(),
+        }
+    }
 }
 
 impl TryFromProst for Relation {

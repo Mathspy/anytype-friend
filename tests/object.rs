@@ -40,7 +40,7 @@ async fn object_can_create_preexisting_one() {
                         name: "Tag".to_string(),
                         format: RelationFormat::MultiSelect,
                     },
-                    description_relation.clone().into_spec(),
+                    description_relation.as_spec(),
                     RelationSpec {
                         name: "Source".to_string(),
                         format: RelationFormat::Url,

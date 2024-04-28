@@ -243,9 +243,8 @@ impl Space {
                     .into_iter()
                     .collect::<BTreeSet<_>>();
                 let relations_specs = recommended_relations
-                    .clone()
-                    .into_iter()
-                    .map(Relation::into_spec)
+                    .iter()
+                    .map(Relation::as_spec)
                     .collect::<BTreeSet<_>>();
 
                 if relations_specs == object_type_spec.recommended_relations {
