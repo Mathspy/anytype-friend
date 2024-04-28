@@ -159,8 +159,17 @@ impl From<RelationId> for ObjectId {
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct RelationKey {
-    key: String,
+pub struct RelationKey(pub(crate) String);
+
+impl TryFromProst for RelationKey {
+    type Input = prost_types::value::Kind;
+
+    fn try_from_prost(kind: Self::Input) -> Result<Self, ProstConversionError>
+    where
+        Self: Sized,
+    {
+        String::try_from_prost(kind).map(RelationKey)
+    }
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -214,7 +223,7 @@ impl TryFromProst for Relation {
         let id = value.take::<RelationId>("id")?;
         let name = value.take::<String>("name")?;
         let is_hidden = value.take_optional::<bool>("isHidden")?.unwrap_or_default();
-        let relation_key = value.take::<String>("relationKey")?;
+        let relation_key = value.take::<RelationKey>("relationKey")?;
         let format = value.take_enum::<InternalRelationFormat>("relationFormat")?;
         let object_types =
             value.take_optional::<BTreeSet<ObjectTypeId>>("relationFormatObjectTypes")?;
@@ -223,7 +232,7 @@ impl TryFromProst for Relation {
             id,
             name,
             is_hidden,
-            relation_key: RelationKey { key: relation_key },
+            relation_key,
             format: RelationFormat::from_internal(format, object_types),
         })
     }
