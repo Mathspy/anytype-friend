@@ -185,7 +185,7 @@ pub enum RelationValue {
     // FileOrMedia
     Checkbox(bool),
     Url(String),
-    // Email
+    Email(String),
     // Phone
     // Object
 }
@@ -193,7 +193,9 @@ pub enum RelationValue {
 impl IntoProstValue for RelationValue {
     fn into_prost(self) -> prost_types::Value {
         match self {
-            RelationValue::Text(string) | RelationValue::Url(string) => string.into_prost(),
+            RelationValue::Text(string)
+            | RelationValue::Url(string)
+            | RelationValue::Email(string) => string.into_prost(),
             RelationValue::Number(number) => number.into_prost(),
             RelationValue::Date(datetime) => (datetime.and_utc().timestamp() as f64).into_prost(),
             RelationValue::Checkbox(boolean) => boolean.into_prost(),
