@@ -202,7 +202,7 @@ pub struct Relation {
     id: RelationId,
     name: String,
     is_hidden: bool,
-    relation_key: RelationKey,
+    pub(crate) relation_key: RelationKey,
     format: RelationFormat,
 }
 
