@@ -25,7 +25,7 @@ pub struct Space {
 /// This trait should only be implemented for types that should never fail their
 /// TryFrom conversion
 pub(crate) trait SearchOutput: TryFromProst<Input = prost_types::Struct> {
-    const LAYOUT: pb::models::object_type::Layout;
+    const LAYOUT: &'static [pb::models::object_type::Layout];
 
     fn is_hidden(&self) -> bool;
 }
@@ -51,8 +51,14 @@ impl Space {
             Filter {
                 operator: Operator::And.into(),
                 relation_key: "layout".to_string(),
-                condition: Condition::Equal.into(),
-                value: Some((i32::from(O::LAYOUT) as f64).into_prost()),
+                condition: Condition::In.into(),
+                value: Some(
+                    O::LAYOUT
+                        .iter()
+                        .map(|layout| (i32::from(*layout) as f64).into_prost())
+                        .collect::<Vec<_>>()
+                        .into_prost(),
+                ),
 
                 ..Default::default()
             },

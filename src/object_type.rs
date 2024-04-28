@@ -95,8 +95,8 @@ impl TryFromProst for ObjectTypeUnresolved {
 }
 
 impl crate::space::SearchOutput for ObjectTypeUnresolved {
-    const LAYOUT: crate::pb::models::object_type::Layout =
-        crate::pb::models::object_type::Layout::ObjectType;
+    const LAYOUT: &'static [crate::pb::models::object_type::Layout] =
+        &[crate::pb::models::object_type::Layout::ObjectType];
 
     fn is_hidden(&self) -> bool {
         self.is_hidden
