@@ -146,6 +146,10 @@ impl Object {
                 .map(RelationValue::Email)
                 .map(Some)
                 .expect("unreachable"),
+            RelationFormat::Phone => String::try_from_prost(kind)
+                .map(RelationValue::Phone)
+                .map(Some)
+                .expect("unreachable"),
 
             _ => todo!(),
         }

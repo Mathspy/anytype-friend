@@ -186,7 +186,7 @@ pub enum RelationValue {
     Checkbox(bool),
     Url(String),
     Email(String),
-    // Phone
+    Phone(String),
     // Object
 }
 
@@ -195,7 +195,8 @@ impl IntoProstValue for RelationValue {
         match self {
             RelationValue::Text(string)
             | RelationValue::Url(string)
-            | RelationValue::Email(string) => string.into_prost(),
+            | RelationValue::Email(string)
+            | RelationValue::Phone(string) => string.into_prost(),
             RelationValue::Number(number) => number.into_prost(),
             RelationValue::Date(datetime) => (datetime.and_utc().timestamp() as f64).into_prost(),
             RelationValue::Checkbox(boolean) => boolean.into_prost(),
