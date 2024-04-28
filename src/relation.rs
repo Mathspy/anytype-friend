@@ -183,7 +183,7 @@ pub enum RelationValue {
     // MultiSelect
     Date(NaiveDateTime),
     // FileOrMedia
-    // Checkbox
+    Checkbox(bool),
     // Url
     // Email
     // Phone
@@ -196,6 +196,7 @@ impl IntoProstValue for RelationValue {
             RelationValue::Text(string) => string.into_prost(),
             RelationValue::Number(number) => number.into_prost(),
             RelationValue::Date(datetime) => (datetime.and_utc().timestamp() as f64).into_prost(),
+            RelationValue::Checkbox(boolean) => boolean.into_prost(),
         }
     }
 }

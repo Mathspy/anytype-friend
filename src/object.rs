@@ -134,6 +134,11 @@ impl Object {
                 .map(RelationValue::Date)
                 .map(Some)
                 .expect("unreachable"),
+            RelationFormat::Checkbox => bool::try_from_prost(kind)
+                .map(RelationValue::Checkbox)
+                .map(Some)
+                .expect("unreachable"),
+
             _ => todo!(),
         }
     }

@@ -20,6 +20,14 @@ impl IntoProstValue for f64 {
     }
 }
 
+impl IntoProstValue for bool {
+    fn into_prost(self) -> prost_types::Value {
+        prost_types::Value {
+            kind: Some(prost_types::value::Kind::BoolValue(self)),
+        }
+    }
+}
+
 impl IntoProstValue for Vec<prost_types::Value> {
     fn into_prost(self) -> prost_types::Value {
         prost_types::Value {
