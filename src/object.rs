@@ -13,7 +13,7 @@ use crate::{
     RelationFormat,
 };
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ObjectId(CidGeneric<32>);
 
 impl Display for ObjectId {
@@ -69,8 +69,8 @@ pub struct Object {
 }
 
 impl Object {
-    pub fn id(&self) -> &ObjectId {
-        &self.id
+    pub fn id(&self) -> ObjectId {
+        self.id
     }
 
     pub fn name(&self) -> &str {

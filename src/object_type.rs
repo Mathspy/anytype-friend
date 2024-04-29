@@ -34,7 +34,7 @@ impl ObjectTypeSpec {
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ObjectTypeId(ObjectId);
 
 impl Display for ObjectTypeId {
@@ -124,8 +124,8 @@ pub struct ObjectType {
 }
 
 impl ObjectType {
-    pub fn id(&self) -> &ObjectTypeId {
-        &self.id
+    pub fn id(&self) -> ObjectTypeId {
+        self.id
     }
 
     pub fn name(&self) -> &str {

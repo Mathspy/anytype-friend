@@ -131,7 +131,7 @@ impl From<RelationFormat> for f64 {
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RelationId(ObjectId);
 
 impl Display for RelationId {
@@ -214,8 +214,8 @@ pub struct Relation {
 }
 
 impl Relation {
-    pub fn id(&self) -> &RelationId {
-        &self.id
+    pub fn id(&self) -> RelationId {
+        self.id
     }
 
     pub fn into_id(self) -> RelationId {
