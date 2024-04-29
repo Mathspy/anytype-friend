@@ -9,6 +9,30 @@ use anytype_friend::{
 use chrono::{DateTime, Utc};
 use utils::run_with_service;
 
+macro_rules! assert_relations_eq {
+    ($a:expr, $b:expr) => {
+        let equal = match ($a, $b) {
+            (RelationValue::Text(a), RelationValue::Text(b))
+            | (RelationValue::Url(a), RelationValue::Url(b))
+            | (RelationValue::Email(a), RelationValue::Email(b))
+            | (RelationValue::Phone(a), RelationValue::Phone(b)) => a == b,
+            (RelationValue::Number(a), RelationValue::Number(b)) => a == b,
+            (RelationValue::Date(a), RelationValue::Date(b)) => a == b,
+            (RelationValue::Checkbox(a), RelationValue::Checkbox(b)) => a == b,
+            _ => false,
+        };
+
+        if !equal {
+            panic!(
+                "assertion `left == right` failed
+left: {:?}
+right: {:?}",
+                $a, $b
+            )
+        }
+    };
+}
+
 #[tokio::test]
 async fn object_can_create_preexisting_one() {
     let temp_dir = tempdir::TempDir::new("anytype-friend").unwrap();
@@ -64,9 +88,9 @@ async fn object_can_create_preexisting_one() {
             .unwrap();
 
         assert_eq!(object.name(), "Test Object");
-        assert_eq!(
-            object.get(&description_relation),
-            Some(RelationValue::Text("We can create objects!".to_string()),)
+        assert_relations_eq!(
+            object.get(&description_relation).unwrap(),
+            RelationValue::Text("We can create objects!".to_string())
         );
     })
     .await;
@@ -187,30 +211,33 @@ async fn object_can_create_one_with_all_basic_relation_formats() {
             .unwrap();
 
         assert_eq!(object.name(), "Test Object");
-        assert_eq!(
-            object.get(&text_relation),
-            Some(RelationValue::Text("text!".to_string()))
+        assert_relations_eq!(
+            object.get(&text_relation).unwrap(),
+            RelationValue::Text("text!".to_string())
         );
-        assert_eq!(
-            object.get(&number_relation),
-            Some(RelationValue::Number(5.0))
+        assert_relations_eq!(
+            object.get(&number_relation).unwrap(),
+            RelationValue::Number(5.0)
         );
-        assert_eq!(object.get(&date_relation), Some(RelationValue::Date(now)));
-        assert_eq!(
-            object.get(&checkbox_relation),
-            Some(RelationValue::Checkbox(true))
+        assert_relations_eq!(
+            object.get(&date_relation).unwrap(),
+            RelationValue::Date(now)
         );
-        assert_eq!(
-            object.get(&url_relation),
-            Some(RelationValue::Url("https://gamediary.dev".to_string()))
+        assert_relations_eq!(
+            object.get(&checkbox_relation).unwrap(),
+            RelationValue::Checkbox(true)
         );
-        assert_eq!(
-            object.get(&email_relation),
-            Some(RelationValue::Email("cool@email.me".to_string()))
+        assert_relations_eq!(
+            object.get(&url_relation).unwrap(),
+            RelationValue::Url("https://gamediary.dev".to_string())
         );
-        assert_eq!(
-            object.get(&phone_relation),
-            Some(RelationValue::Phone("(555)555-5555".to_string()))
+        assert_relations_eq!(
+            object.get(&email_relation).unwrap(),
+            RelationValue::Email("cool@email.me".to_string())
+        );
+        assert_relations_eq!(
+            object.get(&phone_relation).unwrap(),
+            RelationValue::Phone("(555)555-5555".to_string())
         );
     })
     .await;

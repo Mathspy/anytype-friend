@@ -185,7 +185,7 @@ impl TryFromProst for RelationKey {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum RelationValue {
     Text(String),
     Number(f64),
