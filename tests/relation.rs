@@ -1,6 +1,8 @@
 mod utils;
 
-use anytype_friend::{AnytypeClient, NetworkSync, RelationFormat, RelationSpec};
+use std::collections::BTreeSet;
+
+use anytype_friend::{AnytypeClient, NetworkSync, ObjectTypeSpec, RelationFormat, RelationSpec};
 use utils::run_with_service;
 
 #[tokio::test]
@@ -98,6 +100,51 @@ async fn relation_can_obtain_a_new_one() {
         let relation = space.obtain_relation(&spec).await.unwrap();
         assert_eq!(relation.name(), "Longitude");
         assert_eq!(*relation.format(), RelationFormat::Number);
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn relation_can_create_object_format_with_types() {
+    let temp_dir = tempdir::TempDir::new("anytype-friend").unwrap();
+    let temp_dir_path = temp_dir.path();
+
+    run_with_service(|port| async move {
+        let (_, client) = AnytypeClient::connect(&format!("http://127.0.0.1:{port}"))
+            .await
+            .unwrap()
+            .with_network_sync(NetworkSync::NoSync)
+            .with_root_path(temp_dir_path)
+            .create_account("Test Client")
+            .await
+            .unwrap();
+
+        let space = client.default_space().await.unwrap().unwrap();
+        let object_type = space
+            .obtain_object_type(&ObjectTypeSpec {
+                name: "TestObjectType".to_string(),
+                recommended_relations: BTreeSet::new(),
+            })
+            .await
+            .unwrap();
+        let spec = RelationSpec {
+            name: "TestRelation".to_string(),
+            format: RelationFormat::Object {
+                types: BTreeSet::from([(object_type.id())]),
+            },
+        };
+        if space.get_relation(&spec).await.unwrap().is_some() {
+            unreachable!("TestRelation is now a default anytype relation");
+        }
+
+        let relation = space.obtain_relation(&spec).await.unwrap();
+        assert_eq!(relation.name(), "TestRelation");
+        assert_eq!(
+            *relation.format(),
+            RelationFormat::Object {
+                types: BTreeSet::from([(object_type.id())])
+            }
+        );
     })
     .await;
 }

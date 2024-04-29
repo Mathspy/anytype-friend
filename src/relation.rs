@@ -21,15 +21,26 @@ pub struct RelationSpec {
 
 impl From<RelationSpec> for prost_types::Struct {
     fn from(value: RelationSpec) -> Self {
-        prost_types::Struct {
-            fields: BTreeMap::from([
-                ("name".to_string(), value.name.to_string().into_prost()),
-                (
-                    "relationFormat".to_string(),
-                    f64::from(value.format).into_prost(),
-                ),
-            ]),
+        let mut fields = BTreeMap::from([
+            ("name".to_string(), value.name.to_string().into_prost()),
+            (
+                "relationFormat".to_string(),
+                f64::from(&value.format).into_prost(),
+            ),
+        ]);
+
+        if let RelationFormat::Object { types } = value.format {
+            fields.insert(
+                "relationFormatObjectTypes".to_string(),
+                types
+                    .into_iter()
+                    .map(|object_id| object_id.into_prost())
+                    .collect::<Vec<_>>()
+                    .into_prost(),
+            );
         }
+
+        prost_types::Struct { fields }
     }
 }
 
@@ -111,8 +122,8 @@ impl RelationFormat {
     }
 }
 
-impl From<RelationFormat> for f64 {
-    fn from(value: RelationFormat) -> Self {
+impl From<&RelationFormat> for f64 {
+    fn from(value: &RelationFormat) -> Self {
         let internal = match value {
             RelationFormat::Text => InternalRelationFormat::Longtext,
             RelationFormat::Number => InternalRelationFormat::Number,
