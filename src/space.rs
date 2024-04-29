@@ -9,7 +9,7 @@ use crate::object_type::{ObjectType, ObjectTypeSpec, ObjectTypeUnresolved};
 use crate::pb::{
     self, client_commands_client::ClientCommandsClient, models::block::content::dataview::Filter,
 };
-use crate::prost_ext::{IntoProstValue, ProstStruct, TryFromProst};
+use crate::prost_ext::{IntoProstValue, TryFromProst};
 use crate::relation::{Relation, RelationSpec};
 use crate::request::RequestWithToken;
 
