@@ -92,7 +92,7 @@ impl Display for RelationFormat {
             RelationFormat::Phone => f.write_str("Phone"),
             RelationFormat::Object { types } => {
                 f.write_str("Object { types: [")?;
-                let last_index = types.len() - 1;
+                let last_index = types.len().saturating_sub(1);
                 types.iter().enumerate().try_for_each(|(index, id)| {
                     id.fmt(f)?;
 
