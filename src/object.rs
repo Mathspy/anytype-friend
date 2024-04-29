@@ -1,6 +1,6 @@
 use std::{
     collections::{BTreeMap, HashMap},
-    fmt::Display,
+    fmt::{Debug, Display},
 };
 
 use chrono::DateTime;
@@ -13,12 +13,20 @@ use crate::{
     RelationFormat,
 };
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ObjectId(CidGeneric<32>);
+
+// Use's Display implementation for Debug.
+// The Debug implementation is really unhelpful in our usecase.
+impl Debug for ObjectId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
 
 impl Display for ObjectId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
+        Display::fmt(&self.0, f)
     }
 }
 
