@@ -59,6 +59,24 @@ pub enum RelationFormat {
     Object { types: BTreeSet<ObjectTypeId> },
 }
 
+impl RelationFormat {
+    pub(crate) fn is_superset(&self, other: &RelationFormat) -> bool {
+        match (self, other) {
+            (
+                RelationFormat::Object { types: self_types },
+                RelationFormat::Object { types: other_types },
+            ) => {
+                if self_types.is_empty() {
+                    true
+                } else {
+                    self_types.is_superset(other_types)
+                }
+            }
+            (a, b) => a == b,
+        }
+    }
+}
+
 impl Display for RelationFormat {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -199,6 +217,20 @@ pub enum RelationValue {
     Email(String),
     Phone(String),
     // Object
+}
+
+impl RelationValue {
+    pub fn format(&self) -> RelationFormat {
+        match self {
+            RelationValue::Text(_) => RelationFormat::Text,
+            RelationValue::Number(_) => RelationFormat::Number,
+            RelationValue::Date(_) => RelationFormat::Date,
+            RelationValue::Checkbox(_) => RelationFormat::Checkbox,
+            RelationValue::Url(_) => RelationFormat::Url,
+            RelationValue::Email(_) => RelationFormat::Email,
+            RelationValue::Phone(_) => RelationFormat::Phone,
+        }
+    }
 }
 
 impl IntoProstValue for RelationValue {

@@ -53,18 +53,51 @@ pub struct ObjectDescription {
     pub relations: HashMap<Relation, RelationValue>,
 }
 
-impl From<ObjectDescription> for prost_types::Struct {
-    fn from(value: ObjectDescription) -> Self {
+pub struct IncompatibleRelationValue {
+    expected: RelationFormat,
+    received: RelationFormat,
+}
+
+impl Display for IncompatibleRelationValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Expected format doesn't match received format:\nexpected:{}\nreceived:{}",
+            self.expected, self.received
+        )
+    }
+}
+
+impl TryFrom<ObjectDescription> for prost_types::Struct {
+    type Error = IncompatibleRelationValue;
+
+    fn try_from(value: ObjectDescription) -> Result<Self, Self::Error> {
         let mut fields = BTreeMap::new();
         fields.insert("name".to_string(), value.name.into_prost());
         fields.extend(
             value
                 .relations
                 .into_iter()
-                .map(|(relation, value)| (relation.relation_key.0, value.into_prost())),
+                // This is necessary because anytype-heart does not validate ANY of the relation
+                // values sent to it. Yes if you set a relation format to Number and then send a
+                // string it will just wholeheartedly accept it, it will even return it back to you
+                // if you query for it later without any errors
+                .map(|(relation, value)| {
+                    let expected_format = relation.format();
+                    let received_format = value.format();
+                    if expected_format.is_superset(&received_format) {
+                        Ok((relation.relation_key.0, value.into_prost()))
+                    } else {
+                        Err(IncompatibleRelationValue {
+                            expected: expected_format.clone(),
+                            received: received_format,
+                        })
+                    }
+                })
+                .collect::<Result<Vec<_>, Self::Error>>()?,
         );
 
-        prost_types::Struct { fields }
+        Ok(prost_types::Struct { fields })
     }
 }
 

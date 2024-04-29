@@ -342,22 +342,24 @@ Received recommended relations: {:?}",
     }
 
     pub async fn create_object(&self, object: ObjectDescription) -> Result<Object, tonic::Status> {
-        let response = self
-            .inner
-            .client
-            .clone()
-            .object_create(RequestWithToken {
-                request: pb::rpc::object::create::Request {
-                    space_id: self.inner.info.account_space_id.clone(),
-                    object_type_unique_key: object.ty.unique_key.clone().0,
-                    details: Some(object.into()),
+        let response =
+            self.inner
+                .client
+                .clone()
+                .object_create(RequestWithToken {
+                    request: pb::rpc::object::create::Request {
+                        space_id: self.inner.info.account_space_id.clone(),
+                        object_type_unique_key: object.ty.unique_key.clone().0,
+                        details: Some(object.try_into().map_err(|error| {
+                            tonic::Status::failed_precondition(format!("{error}"))
+                        })?),
 
-                    ..Default::default()
-                },
-                token: &self.inner.token,
-            })
-            .await?
-            .into_inner();
+                        ..Default::default()
+                    },
+                    token: &self.inner.token,
+                })
+                .await?
+                .into_inner();
 
         if let Some(error) = response.error {
             use pb::rpc::object::create::response::error::Code;

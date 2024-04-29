@@ -199,7 +199,7 @@ async fn object_can_create_one_with_all_basic_relation_formats() {
                     ),
                     (
                         email_relation.clone(),
-                        RelationValue::Url("cool@email.me".to_string()),
+                        RelationValue::Email("cool@email.me".to_string()),
                     ),
                     (
                         phone_relation.clone(),
@@ -239,6 +239,82 @@ async fn object_can_create_one_with_all_basic_relation_formats() {
             object.get(&phone_relation).unwrap(),
             RelationValue::Phone("(555)555-5555".to_string())
         );
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn object_fails_to_create_with_incorrect_relation_format() {
+    let temp_dir = tempdir::TempDir::new("anytype-friend").unwrap();
+    let temp_dir_path = temp_dir.path();
+
+    run_with_service(|port| async move {
+        let (_, client) = AnytypeClient::connect(&format!("http://127.0.0.1:{port}"))
+            .await
+            .unwrap()
+            .with_network_sync(NetworkSync::NoSync)
+            .with_root_path(temp_dir_path)
+            .create_account("Test Client")
+            .await
+            .unwrap();
+
+        let space = client.default_space().await.unwrap().unwrap();
+        let number_relation = space
+            .obtain_relation(&RelationSpec {
+                name: "Number Relation Test".to_string(),
+                format: RelationFormat::Number,
+            })
+            .await
+            .unwrap();
+        let email_relation = space
+            .obtain_relation(&RelationSpec {
+                name: "Email Relation Test".to_string(),
+                format: RelationFormat::Email,
+            })
+            .await
+            .unwrap();
+
+        let object_type = space
+            .obtain_object_type(&ObjectTypeSpec {
+                name: "TestType".to_string(),
+                recommended_relations: BTreeSet::new(),
+            })
+            .await
+            .unwrap();
+
+        let error = space
+            .create_object(ObjectDescription {
+                ty: object_type.clone(),
+                name: "Test Object".to_string(),
+                relations: HashMap::from([(
+                    number_relation.clone(),
+                    RelationValue::Text("text!".to_string()),
+                )]),
+            })
+            .await
+            .unwrap_err();
+
+        // TODO: This should be an enum error
+        assert!(error
+            .message()
+            .contains("Expected format doesn't match received format"));
+
+        let error = space
+            .create_object(ObjectDescription {
+                ty: object_type,
+                name: "Test Object".to_string(),
+                relations: HashMap::from([(
+                    email_relation.clone(),
+                    RelationValue::Phone("sneaky@email.com".to_string()),
+                )]),
+            })
+            .await
+            .unwrap_err();
+
+        // TODO: This should be an enum error
+        assert!(error
+            .message()
+            .contains("Expected format doesn't match received format"));
     })
     .await;
 }
