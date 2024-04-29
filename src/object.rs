@@ -4,6 +4,7 @@ use std::{
 };
 
 use chrono::DateTime;
+use cid::CidGeneric;
 
 use crate::{
     object_type::ObjectType,
@@ -13,17 +14,17 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ObjectId(pub(crate) String);
+pub struct ObjectId(CidGeneric<32>);
 
 impl Display for ObjectId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.0)
+        self.0.fmt(f)
     }
 }
 
 impl IntoProstValue for ObjectId {
     fn into_prost(self) -> prost_types::Value {
-        self.0.into_prost()
+        format!("{}", self.0).into_prost()
     }
 }
 
@@ -31,7 +32,10 @@ impl TryFromProst for ObjectId {
     type Input = prost_types::value::Kind;
 
     fn try_from_prost(kind: Self::Input) -> Result<Self, ProstConversionError> {
-        String::try_from_prost(kind).map(ObjectId)
+        let string = String::try_from_prost(kind)?;
+        let cid = CidGeneric::<32>::try_from(string)
+            .expect("ObjectIds are always valid CID with 32 bytes");
+        Ok(ObjectId(cid))
     }
 }
 

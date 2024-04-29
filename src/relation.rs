@@ -132,11 +132,11 @@ impl From<RelationFormat> for f64 {
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct RelationId(String);
+pub struct RelationId(ObjectId);
 
 impl Display for RelationId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.0)
+        self.0.fmt(f)
     }
 }
 
@@ -150,13 +150,13 @@ impl TryFromProst for RelationId {
     type Input = prost_types::value::Kind;
 
     fn try_from_prost(kind: Self::Input) -> Result<Self, ProstConversionError> {
-        String::try_from_prost(kind).map(RelationId)
+        ObjectId::try_from_prost(kind).map(RelationId)
     }
 }
 
 impl From<RelationId> for ObjectId {
     fn from(value: RelationId) -> Self {
-        Self(value.0)
+        value.0
     }
 }
 

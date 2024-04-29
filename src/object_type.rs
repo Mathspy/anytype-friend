@@ -4,6 +4,7 @@ use std::{
 };
 
 use crate::{
+    object::ObjectId,
     prost_ext::{IntoProstValue, ProstConversionError, ProstStruct, TryFromProst},
     relation::{Relation, RelationId, RelationSpec},
     unique_key::UniqueKey,
@@ -34,11 +35,11 @@ impl ObjectTypeSpec {
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ObjectTypeId(pub(crate) String);
+pub struct ObjectTypeId(ObjectId);
 
 impl Display for ObjectTypeId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.0)
+        self.0.fmt(f)
     }
 }
 
@@ -52,7 +53,7 @@ impl TryFromProst for ObjectTypeId {
     type Input = prost_types::value::Kind;
 
     fn try_from_prost(kind: Self::Input) -> Result<Self, ProstConversionError> {
-        String::try_from_prost(kind).map(ObjectTypeId)
+        ObjectId::try_from_prost(kind).map(ObjectTypeId)
     }
 }
 
