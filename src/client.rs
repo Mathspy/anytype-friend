@@ -1,8 +1,9 @@
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use crate::pb::{self, client_commands_client::ClientCommandsClient, models::Account};
 use crate::request::RequestWithToken;
-use crate::space::Space;
+use crate::space::{Space, SpaceInner};
 
 pub struct AnytypeClient {
     inner: ClientCommandsClient<tonic::transport::Channel>,
@@ -472,9 +473,11 @@ impl AuthorizedAnytypeClient {
         };
 
         Ok(Some(Space {
-            client: self.inner.clone(),
-            token: self.token.clone(),
-            info,
+            inner: Arc::new(SpaceInner {
+                client: self.inner.clone(),
+                token: self.token.clone(),
+                info,
+            }),
         }))
     }
 }

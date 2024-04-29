@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 use std::ops::Not;
+use std::sync::Arc;
 
 use futures_util::stream::FuturesUnordered;
 use futures_util::TryStreamExt;
@@ -14,10 +15,15 @@ use crate::relation::{Relation, RelationSpec};
 use crate::request::RequestWithToken;
 
 #[derive(Debug)]
-pub struct Space {
+pub(crate) struct SpaceInner {
     pub(crate) client: ClientCommandsClient<tonic::transport::Channel>,
     pub(crate) token: String,
     pub(crate) info: pb::models::account::Info,
+}
+
+#[derive(Debug, Clone)]
+pub struct Space {
+    pub(crate) inner: Arc<SpaceInner>,
 }
 
 /// Internal trait representing a known AnyType object layout.
@@ -43,7 +49,9 @@ impl Space {
                 operator: Operator::And.into(),
                 relation_key: "spaceId".to_string(),
                 condition: Condition::In.into(),
-                value: Some(vec![self.info.account_space_id.clone().into_prost()].into_prost()),
+                value: Some(
+                    vec![self.inner.info.account_space_id.clone().into_prost()].into_prost(),
+                ),
 
                 ..Default::default()
             },
@@ -65,6 +73,7 @@ impl Space {
         ]);
 
         let response = self
+            .inner
             .client
             .clone()
             .object_search(RequestWithToken {
@@ -72,7 +81,7 @@ impl Space {
                     filters,
                     ..Default::default()
                 },
-                token: &self.token,
+                token: &self.inner.token,
             })
             .await?
             .into_inner();
@@ -174,14 +183,15 @@ impl Space {
         relation_spec: &RelationSpec,
     ) -> Result<Relation, tonic::Status> {
         let response = self
+            .inner
             .client
             .clone()
             .object_create_relation(RequestWithToken {
                 request: pb::rpc::object::create_relation::Request {
-                    space_id: self.info.account_space_id.clone(),
+                    space_id: self.inner.info.account_space_id.clone(),
                     details: Some(relation_spec.clone().into()),
                 },
-                token: &self.token,
+                token: &self.inner.token,
             })
             .await?
             .into_inner();
@@ -286,16 +296,17 @@ Received recommended relations: {:?}",
             .collect::<Vec<_>>();
 
         let response = self
+            .inner
             .client
             .clone()
             .object_create_object_type(RequestWithToken {
                 request: pb::rpc::object::create_object_type::Request {
-                    space_id: self.info.account_space_id.clone(),
+                    space_id: self.inner.info.account_space_id.clone(),
                     details: Some(object_type_spec.to_struct(relation_ids)),
 
                     ..Default::default()
                 },
-                token: &self.token,
+                token: &self.inner.token,
             })
             .await?
             .into_inner();
@@ -332,17 +343,18 @@ Received recommended relations: {:?}",
 
     pub async fn create_object(&self, object: ObjectDescription) -> Result<Object, tonic::Status> {
         let response = self
+            .inner
             .client
             .clone()
             .object_create(RequestWithToken {
                 request: pb::rpc::object::create::Request {
-                    space_id: self.info.account_space_id.clone(),
+                    space_id: self.inner.info.account_space_id.clone(),
                     object_type_unique_key: object.ty.unique_key.clone().0,
                     details: Some(object.into()),
 
                     ..Default::default()
                 },
-                token: &self.token,
+                token: &self.inner.token,
             })
             .await?
             .into_inner();
