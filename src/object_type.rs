@@ -8,6 +8,7 @@ use crate::{
     prost_ext::{IntoProstValue, ProstConversionError, ProstStruct, TryFromProst},
     relation::{Relation, RelationId, RelationSpec},
     unique_key::UniqueKey,
+    Space,
 };
 
 pub struct ObjectTypeSpec {
@@ -112,6 +113,26 @@ impl ObjectTypeUnresolved {
             unique_key: self.unique_key,
             recommended_relations,
         }
+    }
+
+    // TODO: It would be nice to get rid of this later and have resolve behave quicker due to an
+    // dataloader-style internal cache?
+    // A quick search shows me dataloader is a crate on crates.io that has a single dependency on
+    // tokio, which is excellent. But I think we don't really need a complex crate this is a feature
+    // that can easily be packed into Space and particularly get_objects
+    pub async fn slow_resolve(self, space: Space) -> Result<ObjectType, tonic::Status> {
+        let recommended_relations = space
+            .get_objects::<Relation>(self.recommended_relations)
+            .await?
+            .into_iter()
+            .collect::<BTreeSet<_>>();
+
+        Ok(ObjectType {
+            id: self.id,
+            name: self.name,
+            unique_key: self.unique_key,
+            recommended_relations,
+        })
     }
 }
 

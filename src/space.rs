@@ -254,18 +254,15 @@ impl Space {
             1 => {
                 let object_type = object_types.swap_remove(0);
 
-                let recommended_relations = self
-                    .get_objects::<Relation>(object_type.recommended_relations.clone())
-                    .await?
-                    .into_iter()
-                    .collect::<BTreeSet<_>>();
-                let relations_specs = recommended_relations
+                let output = object_type.slow_resolve(self.clone()).await?;
+                let relations_specs = output
+                    .recommended_relations()
                     .iter()
                     .map(Relation::as_spec)
                     .collect::<BTreeSet<_>>();
 
                 if relations_specs == object_type_spec.recommended_relations {
-                    Ok(Some(object_type.resolve(recommended_relations)))
+                    Ok(Some(output))
                 } else {
                     Err(tonic::Status::failed_precondition(format!(
                         "ObjectType `{}` exists but has different recommended relations from requested recommended relations:
