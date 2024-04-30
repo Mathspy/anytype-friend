@@ -335,6 +335,7 @@ impl TryFromProst for Relation {
 impl crate::space::SearchOutput for Relation {
     const LAYOUT: &'static [crate::pb::models::object_type::Layout] =
         &[crate::pb::models::object_type::Layout::Relation];
+    type Id = RelationId;
 
     fn is_hidden(&self) -> bool {
         self.is_hidden

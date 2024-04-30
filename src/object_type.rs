@@ -57,6 +57,12 @@ impl TryFromProst for ObjectTypeId {
     }
 }
 
+impl From<ObjectTypeId> for ObjectId {
+    fn from(value: ObjectTypeId) -> Self {
+        value.0
+    }
+}
+
 pub(crate) struct ObjectTypeUnresolved {
     id: ObjectTypeId,
     name: String,
@@ -98,6 +104,7 @@ impl TryFromProst for ObjectTypeUnresolved {
 impl crate::space::SearchOutput for ObjectTypeUnresolved {
     const LAYOUT: &'static [crate::pb::models::object_type::Layout] =
         &[crate::pb::models::object_type::Layout::ObjectType];
+    type Id = ObjectTypeId;
 
     fn is_hidden(&self) -> bool {
         self.is_hidden

@@ -32,6 +32,7 @@ pub struct Space {
 /// TryFrom conversion
 pub(crate) trait SearchOutput: TryFromProst<Input = prost_types::Struct> {
     const LAYOUT: &'static [pb::models::object_type::Layout];
+    type Id: Into<ObjectId>;
 
     fn is_hidden(&self) -> bool;
 }
@@ -112,7 +113,7 @@ impl Space {
 
     pub(crate) async fn get_objects<O>(
         &self,
-        ids: impl IntoIterator<Item = impl Into<ObjectId>>,
+        ids: impl IntoIterator<Item = O::Id>,
     ) -> Result<Vec<O>, tonic::Status>
     where
         O: SearchOutput,

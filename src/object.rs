@@ -127,6 +127,7 @@ impl crate::space::SearchOutput for ObjectUnresolved {
         crate::pb::models::object_type::Layout::Basic,
         crate::pb::models::object_type::Layout::Bookmark,
     ];
+    type Id = ObjectId;
 
     fn is_hidden(&self) -> bool {
         self.is_hidden
