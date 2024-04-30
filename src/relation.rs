@@ -6,7 +6,7 @@ use std::{
 use chrono::NaiveDateTime;
 
 use crate::{
-    object::ObjectId,
+    object::{Object, ObjectId},
     object_type::ObjectTypeId,
     pb::models::RelationFormat as InternalRelationFormat,
     prost_ext::{IntoProstValue, ProstConversionError, ProstStruct, TryFromProst},
@@ -216,7 +216,7 @@ pub enum RelationValue {
     Url(String),
     Email(String),
     Phone(String),
-    // Object
+    Object(Vec<Object>),
 }
 
 impl RelationValue {
@@ -229,6 +229,13 @@ impl RelationValue {
             RelationValue::Url(_) => RelationFormat::Url,
             RelationValue::Email(_) => RelationFormat::Email,
             RelationValue::Phone(_) => RelationFormat::Phone,
+            RelationValue::Object(objects) => RelationFormat::Object {
+                types: objects
+                    .clone()
+                    .into_iter()
+                    .map(|object| object.ty)
+                    .collect(),
+            },
         }
     }
 }
@@ -243,6 +250,11 @@ impl IntoProstValue for RelationValue {
             RelationValue::Number(number) => number.into_prost(),
             RelationValue::Date(datetime) => (datetime.and_utc().timestamp() as f64).into_prost(),
             RelationValue::Checkbox(boolean) => boolean.into_prost(),
+            RelationValue::Object(objects) => objects
+                .into_iter()
+                .map(|object| object.id().into_prost())
+                .collect::<Vec<_>>()
+                .into_prost(),
         }
     }
 }

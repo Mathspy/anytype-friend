@@ -1,6 +1,6 @@
 mod utils;
 
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 use anytype_friend::{
     AnytypeClient, NetworkSync, ObjectDescription, ObjectTypeSpec, RelationFormat, RelationSpec,
@@ -19,6 +19,14 @@ macro_rules! assert_relations_eq {
             (RelationValue::Number(a), RelationValue::Number(b)) => a == b,
             (RelationValue::Date(a), RelationValue::Date(b)) => a == b,
             (RelationValue::Checkbox(a), RelationValue::Checkbox(b)) => a == b,
+            (RelationValue::Object(a), RelationValue::Object(b)) => {
+                a.into_iter()
+                    .map(|object| object.id().clone())
+                    .collect::<HashSet<_>>()
+                    == b.into_iter()
+                        .map(|object| object.id().clone())
+                        .collect::<HashSet<_>>()
+            }
             _ => false,
         };
 
@@ -89,7 +97,7 @@ async fn object_can_create_preexisting_one() {
 
         assert_eq!(object.name(), "Test Object");
         assert_relations_eq!(
-            object.get(&description_relation).unwrap(),
+            object.get(&description_relation).await.unwrap(),
             RelationValue::Text("We can create objects!".to_string())
         );
     })
@@ -212,31 +220,31 @@ async fn object_can_create_one_with_all_basic_relation_formats() {
 
         assert_eq!(object.name(), "Test Object");
         assert_relations_eq!(
-            object.get(&text_relation).unwrap(),
+            object.get(&text_relation).await.unwrap(),
             RelationValue::Text("text!".to_string())
         );
         assert_relations_eq!(
-            object.get(&number_relation).unwrap(),
+            object.get(&number_relation).await.unwrap(),
             RelationValue::Number(5.0)
         );
         assert_relations_eq!(
-            object.get(&date_relation).unwrap(),
+            object.get(&date_relation).await.unwrap(),
             RelationValue::Date(now)
         );
         assert_relations_eq!(
-            object.get(&checkbox_relation).unwrap(),
+            object.get(&checkbox_relation).await.unwrap(),
             RelationValue::Checkbox(true)
         );
         assert_relations_eq!(
-            object.get(&url_relation).unwrap(),
+            object.get(&url_relation).await.unwrap(),
             RelationValue::Url("https://gamediary.dev".to_string())
         );
         assert_relations_eq!(
-            object.get(&email_relation).unwrap(),
+            object.get(&email_relation).await.unwrap(),
             RelationValue::Email("cool@email.me".to_string())
         );
         assert_relations_eq!(
-            object.get(&phone_relation).unwrap(),
+            object.get(&phone_relation).await.unwrap(),
             RelationValue::Phone("(555)555-5555".to_string())
         );
     })
@@ -313,6 +321,168 @@ async fn object_fails_to_create_with_incorrect_relation_format() {
 
         // TODO: This should be an enum error
         assert!(error
+            .message()
+            .contains("Expected format doesn't match received format"));
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn object_can_create_with_object_relations() {
+    let temp_dir = tempdir::TempDir::new("anytype-friend").unwrap();
+    let temp_dir_path = temp_dir.path();
+
+    run_with_service(|port| async move {
+        let (_, client) = AnytypeClient::connect(&format!("http://127.0.0.1:{port}"))
+            .await
+            .unwrap()
+            .with_network_sync(NetworkSync::NoSync)
+            .with_root_path(temp_dir_path)
+            .create_account("Test Client")
+            .await
+            .unwrap();
+
+        let space = client.default_space().await.unwrap().unwrap();
+        let object_type = space
+            .obtain_object_type(&ObjectTypeSpec {
+                name: "ObjectTypeRelationTest".to_string(),
+                recommended_relations: BTreeSet::new(),
+            })
+            .await
+            .unwrap();
+        let relation = space
+            .obtain_relation(&RelationSpec {
+                name: "ObjectRelationTest".to_string(),
+                format: RelationFormat::Object {
+                    types: BTreeSet::from([object_type.id()]),
+                },
+            })
+            .await
+            .unwrap();
+        let sample_object = space
+            .create_object(ObjectDescription {
+                ty: object_type.clone(),
+                name: "SampleObject".to_string(),
+                relations: HashMap::new(),
+            })
+            .await
+            .unwrap();
+        let sample_object_2 = space
+            .create_object(ObjectDescription {
+                ty: object_type,
+                name: "SampleObject 2".to_string(),
+                relations: HashMap::new(),
+            })
+            .await
+            .unwrap();
+
+        let object_type = space
+            .obtain_object_type(&ObjectTypeSpec {
+                name: "TestType".to_string(),
+                recommended_relations: BTreeSet::from([relation.as_spec()]),
+            })
+            .await
+            .unwrap();
+
+        let object = space
+            .create_object(ObjectDescription {
+                ty: object_type,
+                name: "Test Object".to_string(),
+                relations: HashMap::from([(
+                    relation.clone(),
+                    RelationValue::Object(vec![sample_object.clone(), sample_object_2.clone()]),
+                )]),
+            })
+            .await
+            .unwrap();
+
+        assert_eq!(object.name(), "Test Object");
+        assert_relations_eq!(
+            object.get(&relation).await.unwrap(),
+            RelationValue::Object(vec![sample_object.clone(), sample_object_2.clone(),])
+        );
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn object_fails_to_create_with_incorrect_object_type_relations() {
+    let temp_dir = tempdir::TempDir::new("anytype-friend").unwrap();
+    let temp_dir_path = temp_dir.path();
+
+    run_with_service(|port| async move {
+        let (_, client) = AnytypeClient::connect(&format!("http://127.0.0.1:{port}"))
+            .await
+            .unwrap()
+            .with_network_sync(NetworkSync::NoSync)
+            .with_root_path(temp_dir_path)
+            .create_account("Test Client")
+            .await
+            .unwrap();
+
+        let space = client.default_space().await.unwrap().unwrap();
+        let correct_object_type = space
+            .obtain_object_type(&ObjectTypeSpec {
+                name: "CorrectObjectType".to_string(),
+                recommended_relations: BTreeSet::new(),
+            })
+            .await
+            .unwrap();
+        let wrong_object_type = space
+            .obtain_object_type(&ObjectTypeSpec {
+                name: "WrongObjectType".to_string(),
+                recommended_relations: BTreeSet::new(),
+            })
+            .await
+            .unwrap();
+        let relation = space
+            .obtain_relation(&RelationSpec {
+                name: "ObjectRelationTest".to_string(),
+                format: RelationFormat::Object {
+                    types: BTreeSet::from([correct_object_type.id()]),
+                },
+            })
+            .await
+            .unwrap();
+        let correct_object = space
+            .create_object(ObjectDescription {
+                ty: correct_object_type.clone(),
+                name: "SampleObject".to_string(),
+                relations: HashMap::new(),
+            })
+            .await
+            .unwrap();
+        let wrong_object = space
+            .create_object(ObjectDescription {
+                ty: wrong_object_type,
+                name: "SampleObject 2".to_string(),
+                relations: HashMap::new(),
+            })
+            .await
+            .unwrap();
+
+        let object_type = space
+            .obtain_object_type(&ObjectTypeSpec {
+                name: "TestType".to_string(),
+                recommended_relations: BTreeSet::from([relation.as_spec()]),
+            })
+            .await
+            .unwrap();
+
+        let err = space
+            .create_object(ObjectDescription {
+                ty: object_type,
+                name: "Test Object".to_string(),
+                relations: HashMap::from([(
+                    relation.clone(),
+                    RelationValue::Object(vec![correct_object.clone(), wrong_object.clone()]),
+                )]),
+            })
+            .await
+            .unwrap_err();
+
+        // TODO: This should be an enum error
+        assert!(err
             .message()
             .contains("Expected format doesn't match received format"));
     })

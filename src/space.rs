@@ -5,7 +5,7 @@ use std::sync::Arc;
 use futures_util::stream::FuturesUnordered;
 use futures_util::TryStreamExt;
 
-use crate::object::{Object, ObjectDescription, ObjectId};
+use crate::object::{Object, ObjectDescription, ObjectId, ObjectUnresolved};
 use crate::object_type::{ObjectType, ObjectTypeSpec, ObjectTypeUnresolved};
 use crate::pb::{
     self, client_commands_client::ClientCommandsClient, models::block::content::dataview::Filter,
@@ -110,7 +110,7 @@ impl Space {
             .collect::<Vec<_>>())
     }
 
-    async fn get_objects<O>(
+    pub(crate) async fn get_objects<O>(
         &self,
         ids: impl IntoIterator<Item = impl Into<ObjectId>>,
     ) -> Result<Vec<O>, tonic::Status>
@@ -376,6 +376,8 @@ Received recommended relations: {:?}",
             ));
         };
 
-        Object::try_from_prost(details).map_err(|error| tonic::Status::internal(format!("{error}")))
+        ObjectUnresolved::try_from_prost(details)
+            .map(|object| object.resolve(self.clone()))
+            .map_err(|error| tonic::Status::internal(format!("{error}")))
     }
 }

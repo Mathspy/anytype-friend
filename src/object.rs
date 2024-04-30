@@ -7,10 +7,10 @@ use chrono::DateTime;
 use cid::CidGeneric;
 
 use crate::{
-    object_type::ObjectType,
+    object_type::{ObjectType, ObjectTypeId},
     prost_ext::{IntoProstValue, ProstConversionError, ProstStruct, TryFromProst},
-    relation::{Relation, RelationValue},
-    RelationFormat,
+    relation::{Relation, RelationFormat, RelationValue},
+    space::Space,
 };
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -101,25 +101,39 @@ impl TryFrom<ObjectDescription> for prost_types::Struct {
     }
 }
 
-#[derive(Debug)]
-pub struct Object {
+pub(crate) struct ObjectUnresolved {
     id: ObjectId,
     name: String,
+    pub(crate) ty: ObjectTypeId,
     is_hidden: bool,
     relations: prost_types::Struct,
 }
 
-impl Object {
-    pub fn id(&self) -> ObjectId {
-        self.id
-    }
+impl ObjectUnresolved {
+    pub fn resolve(self, space: Space) -> Object {
+        Object {
+            space,
 
-    pub fn name(&self) -> &str {
-        &self.name
+            id: self.id,
+            name: self.name,
+            ty: self.ty,
+            relations: self.relations,
+        }
     }
 }
 
-impl TryFromProst for Object {
+impl crate::space::SearchOutput for ObjectUnresolved {
+    const LAYOUT: &'static [crate::pb::models::object_type::Layout] = &[
+        crate::pb::models::object_type::Layout::Basic,
+        crate::pb::models::object_type::Layout::Bookmark,
+    ];
+
+    fn is_hidden(&self) -> bool {
+        self.is_hidden
+    }
+}
+
+impl TryFromProst for ObjectUnresolved {
     type Input = prost_types::Struct;
 
     fn try_from_prost(input: Self::Input) -> Result<Self, ProstConversionError>
@@ -136,18 +150,40 @@ impl TryFromProst for Object {
         let id = value.take::<ObjectId>("id")?;
         let name = value.take::<String>("name")?;
         let is_hidden = value.take_optional::<bool>("isHidden")?.unwrap_or_default();
+        let ty = value.take::<ObjectTypeId>("type")?;
 
         Ok(Self {
             id,
             name,
+            ty,
             is_hidden,
             relations: value.into_inner(),
         })
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct Object {
+    space: Space,
+
+    id: ObjectId,
+    name: String,
+    pub(crate) ty: ObjectTypeId,
+    relations: prost_types::Struct,
+}
+
 impl Object {
-    pub fn get(&self, key: &Relation) -> Option<RelationValue> {
+    pub fn id(&self) -> ObjectId {
+        self.id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+}
+
+impl Object {
+    pub async fn get(&self, key: &Relation) -> Option<RelationValue> {
         let kind = self
             .relations
             .fields
@@ -195,19 +231,20 @@ impl Object {
                 .map(RelationValue::Phone)
                 .map(Some)
                 .expect("unreachable"),
+            RelationFormat::Object { .. } => {
+                let ids = <Vec<ObjectId>>::try_from_prost(kind).expect("unreachable");
+                let objects = self
+                    .space
+                    .get_objects::<ObjectUnresolved>(ids)
+                    .await
+                    .expect("unreachable")
+                    .into_iter()
+                    .map(|object| object.resolve(self.space.clone()))
+                    .collect::<Vec<_>>();
 
+                Some(RelationValue::Object(objects))
+            }
             _ => todo!(),
         }
-    }
-}
-
-impl crate::space::SearchOutput for Object {
-    const LAYOUT: &'static [crate::pb::models::object_type::Layout] = &[
-        crate::pb::models::object_type::Layout::Basic,
-        crate::pb::models::object_type::Layout::Bookmark,
-    ];
-
-    fn is_hidden(&self) -> bool {
-        self.is_hidden
     }
 }
