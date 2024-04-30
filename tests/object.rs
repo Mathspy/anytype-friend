@@ -3,8 +3,8 @@ mod utils;
 use std::collections::{BTreeSet, HashMap, HashSet};
 
 use anytype_friend::{
-    AnytypeClient, NetworkSync, ObjectDescription, ObjectTypeSpec, RelationFormat, RelationSpec,
-    RelationValue,
+    AnytypeClient, NetworkSync, ObjectDescription, ObjectSpec, ObjectTypeSpec, RelationFormat,
+    RelationSpec, RelationValue,
 };
 use chrono::{DateTime, Utc};
 use utils::run_with_service;
@@ -485,6 +485,95 @@ async fn object_fails_to_create_with_incorrect_object_type_relations() {
         assert!(err
             .message()
             .contains("Expected format doesn't match received format"));
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn relation_can_obtain_a_preexisting_one() {
+    let temp_dir = tempdir::TempDir::new("anytype-friend").unwrap();
+    let temp_dir_path = temp_dir.path();
+
+    run_with_service(|port| async move {
+        let (_, client) = AnytypeClient::connect(&format!("http://127.0.0.1:{port}"))
+            .await
+            .unwrap()
+            .with_network_sync(NetworkSync::NoSync)
+            .with_root_path(temp_dir_path)
+            .create_account("Test Client")
+            .await
+            .unwrap();
+
+        let space = client.default_space().await.unwrap().unwrap();
+        let object_type = space
+            .create_object_type(&ObjectTypeSpec {
+                name: "TestObjectType".to_string(),
+                recommended_relations: BTreeSet::new(),
+            })
+            .await
+            .unwrap();
+
+        let spec = ObjectSpec {
+            name: "TestObject".to_string(),
+            ty: object_type.clone(),
+        };
+        let created_object = space
+            .create_object(ObjectDescription {
+                ty: spec.ty.clone(),
+                name: spec.name.clone(),
+                relations: HashMap::new(),
+            })
+            .await
+            .unwrap();
+        let object = match space.get_object(&spec).await.unwrap() {
+            Some(object) => object,
+            None => panic!("Due date relation doesn't exist on a new space"),
+        };
+        assert_eq!(created_object.id(), object.id());
+        assert_eq!(object.name(), "TestObject");
+        assert_eq!(object.ty().await.unwrap().id(), object_type.id());
+
+        let obtained_object = space.obtain_object(&spec).await.unwrap();
+        assert_eq!(object.id(), obtained_object.id());
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn relation_can_obtain_a_new_one() {
+    let temp_dir = tempdir::TempDir::new("anytype-friend").unwrap();
+    let temp_dir_path = temp_dir.path();
+
+    run_with_service(|port| async move {
+        let (_, client) = AnytypeClient::connect(&format!("http://127.0.0.1:{port}"))
+            .await
+            .unwrap()
+            .with_network_sync(NetworkSync::NoSync)
+            .with_root_path(temp_dir_path)
+            .create_account("Test Client")
+            .await
+            .unwrap();
+
+        let space = client.default_space().await.unwrap().unwrap();
+        let object_type = space
+            .create_object_type(&ObjectTypeSpec {
+                name: "TestObjectType".to_string(),
+                recommended_relations: BTreeSet::new(),
+            })
+            .await
+            .unwrap();
+
+        let spec = ObjectSpec {
+            name: "TestObject".to_string(),
+            ty: object_type.clone(),
+        };
+        if space.get_object(&spec).await.unwrap().is_some() {
+            unreachable!("TestObject is now a default anytype object");
+        }
+
+        let object = space.obtain_object(&spec).await.unwrap();
+        assert_eq!(object.name(), "TestObject");
+        assert_eq!(object.ty().await.unwrap().id(), object_type.id());
     })
     .await;
 }

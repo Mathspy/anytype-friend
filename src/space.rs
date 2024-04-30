@@ -5,7 +5,7 @@ use std::sync::Arc;
 use futures_util::stream::FuturesUnordered;
 use futures_util::TryStreamExt;
 
-use crate::object::{Object, ObjectDescription, ObjectId, ObjectUnresolved};
+use crate::object::{Object, ObjectDescription, ObjectId, ObjectSpec, ObjectUnresolved};
 use crate::object_type::{ObjectType, ObjectTypeSpec, ObjectTypeUnresolved};
 use crate::pb::{
     self, client_commands_client::ClientCommandsClient, models::block::content::dataview::Filter,
@@ -345,6 +345,47 @@ Received recommended relations: {:?}",
         }
     }
 
+    pub async fn get_object(
+        &self,
+        object_spec: &ObjectSpec,
+    ) -> Result<Option<Object>, tonic::Status> {
+        use pb::models::block::content::dataview::filter::{Condition, Operator};
+
+        let mut objects = self
+            .search_objects::<ObjectUnresolved>(vec![
+                Filter {
+                    operator: Operator::And.into(),
+                    relation_key: "name".to_string(),
+                    condition: Condition::Like.into(),
+                    value: Some(object_spec.name.clone().into_prost()),
+
+                    ..Default::default()
+                },
+                Filter {
+                    operator: Operator::And.into(),
+                    relation_key: "type".to_string(),
+                    condition: Condition::Equal.into(),
+                    value: Some(object_spec.ty.id().into_prost()),
+
+                    ..Default::default()
+                },
+            ])
+            .await?;
+
+        // This function is a bit unique compared to other gets in that it won't error if an object
+        // exist with the same name but a different type. It feels like there are a lot of usecases
+        // for having different objects with the same name but different types. Kind of like why
+        // shadowing comes in so handy in Rust.
+        match objects.len() {
+            0 => Ok(None),
+            1 => Ok(Some(objects.swap_remove(0).resolve(self.clone()))),
+            _ => Err(tonic::Status::failed_precondition(format!(
+                "More than one object with same name {}",
+                object_spec.name
+            ))),
+        }
+    }
+
     pub async fn create_object(&self, object: ObjectDescription) -> Result<Object, tonic::Status> {
         let response =
             self.inner
@@ -383,5 +424,12 @@ Received recommended relations: {:?}",
         ObjectUnresolved::try_from_prost(details)
             .map(|object| object.resolve(self.clone()))
             .map_err(|error| tonic::Status::internal(format!("{error}")))
+    }
+
+    pub async fn obtain_object(&self, object_spec: &ObjectSpec) -> Result<Object, tonic::Status> {
+        match self.get_object(object_spec).await? {
+            None => self.create_object(object_spec.as_description()).await,
+            Some(object) => Ok(object),
+        }
     }
 }

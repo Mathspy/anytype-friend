@@ -7,7 +7,7 @@ use chrono::DateTime;
 use cid::CidGeneric;
 
 use crate::{
-    object_type::{ObjectType, ObjectTypeId},
+    object_type::{ObjectType, ObjectTypeId, ObjectTypeUnresolved},
     prost_ext::{IntoProstValue, ProstConversionError, ProstStruct, TryFromProst},
     relation::{Relation, RelationFormat, RelationValue},
     space::Space,
@@ -47,10 +47,25 @@ impl TryFromProst for ObjectId {
     }
 }
 
+pub struct ObjectSpec {
+    pub ty: ObjectType,
+    pub name: String,
+}
+
 pub struct ObjectDescription {
     pub ty: ObjectType,
     pub name: String,
     pub relations: HashMap<Relation, RelationValue>,
+}
+
+impl ObjectSpec {
+    pub fn as_description(&self) -> ObjectDescription {
+        ObjectDescription {
+            ty: self.ty.clone(),
+            name: self.name.clone(),
+            relations: HashMap::new(),
+        }
+    }
 }
 
 pub struct IncompatibleRelationValue {
@@ -173,6 +188,17 @@ impl Object {
 
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    // TODO: I don't think it's ideal this is async, we might want to resolve objects in a way that
+    // allows us to pass their type with space
+    pub async fn ty(&self) -> Result<ObjectType, tonic::Status> {
+        self.space
+            .get_objects::<ObjectTypeUnresolved>([self.ty])
+            .await?
+            .swap_remove(0)
+            .slow_resolve(self.space.clone())
+            .await
     }
 }
 
