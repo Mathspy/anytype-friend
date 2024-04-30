@@ -66,7 +66,6 @@ impl From<ObjectTypeId> for ObjectId {
 pub(crate) struct ObjectTypeUnresolved {
     id: ObjectTypeId,
     name: String,
-    is_hidden: bool,
     unique_key: UniqueKey,
     pub(crate) recommended_relations: BTreeSet<RelationId>,
 }
@@ -87,14 +86,12 @@ impl TryFromProst for ObjectTypeUnresolved {
 
         let id = value.take::<ObjectTypeId>("id")?;
         let name = value.take::<String>("name")?;
-        let is_hidden = value.take_optional::<bool>("isHidden")?.unwrap_or_default();
         let unique_key = value.take::<UniqueKey>("uniqueKey")?;
         let recommended_relations = value.take::<BTreeSet<RelationId>>("recommendedRelations")?;
 
         Ok(Self {
             id,
             name,
-            is_hidden,
             unique_key,
             recommended_relations,
         })
@@ -105,10 +102,6 @@ impl crate::space::SearchOutput for ObjectTypeUnresolved {
     const LAYOUT: &'static [crate::pb::models::object_type::Layout] =
         &[crate::pb::models::object_type::Layout::ObjectType];
     type Id = ObjectTypeId;
-
-    fn is_hidden(&self) -> bool {
-        self.is_hidden
-    }
 }
 
 impl ObjectTypeUnresolved {

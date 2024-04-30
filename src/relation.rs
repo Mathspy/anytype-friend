@@ -263,7 +263,6 @@ impl IntoProstValue for RelationValue {
 pub struct Relation {
     id: RelationId,
     name: String,
-    is_hidden: bool,
     pub(crate) relation_key: RelationKey,
     format: RelationFormat,
 }
@@ -316,7 +315,6 @@ impl TryFromProst for Relation {
 
         let id = value.take::<RelationId>("id")?;
         let name = value.take::<String>("name")?;
-        let is_hidden = value.take_optional::<bool>("isHidden")?.unwrap_or_default();
         let relation_key = value.take::<RelationKey>("relationKey")?;
         let format = value.take_enum::<InternalRelationFormat>("relationFormat")?;
         let object_types =
@@ -325,7 +323,6 @@ impl TryFromProst for Relation {
         Ok(Self {
             id,
             name,
-            is_hidden,
             relation_key,
             format: RelationFormat::from_internal(format, object_types),
         })
@@ -336,8 +333,4 @@ impl crate::space::SearchOutput for Relation {
     const LAYOUT: &'static [crate::pb::models::object_type::Layout] =
         &[crate::pb::models::object_type::Layout::Relation];
     type Id = RelationId;
-
-    fn is_hidden(&self) -> bool {
-        self.is_hidden
-    }
 }

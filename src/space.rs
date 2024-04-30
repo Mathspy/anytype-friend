@@ -10,7 +10,7 @@ use crate::object_type::{ObjectType, ObjectTypeSpec, ObjectTypeUnresolved};
 use crate::pb::{
     self, client_commands_client::ClientCommandsClient, models::block::content::dataview::Filter,
 };
-use crate::prost_ext::{IntoProstValue, TryFromProst};
+use crate::prost_ext::{IntoProstValue, ProstStruct, TryFromProst};
 use crate::relation::{Relation, RelationSpec};
 use crate::request::RequestWithToken;
 
@@ -33,8 +33,6 @@ pub struct Space {
 pub(crate) trait SearchOutput: TryFromProst<Input = prost_types::Struct> {
     const LAYOUT: &'static [pb::models::object_type::Layout];
     type Id: Into<ObjectId>;
-
-    fn is_hidden(&self) -> bool;
 }
 
 impl Space {
@@ -99,15 +97,23 @@ impl Space {
         Ok(response
             .records
             .into_iter()
+            .map(ProstStruct::from)
+            // We always filter outputs that are hidden so that they aren't used
+            // by mistake anywhere else
+            .filter_map(|mut fields| {
+                fields
+                    .take_optional::<bool>("isHidden")
+                    .expect("isHidden field is always a boolean")
+                    .unwrap_or_default()
+                    .not()
+                    .then_some(fields.into_inner())
+            })
             .map(O::try_from_prost)
             // TODO: We are guranteed via the trait SearchOutput that this
             // shouldn't need to filter anything, if it were to filter something
             // we should still warn though as that would imply bugs in the
             // internal code
             .filter_map(Result::ok)
-            // We always filter outputs that are hidden so that they aren't used
-            // by mistake anywhere else
-            .filter(|output| output.is_hidden().not())
             .collect::<Vec<_>>())
     }
 

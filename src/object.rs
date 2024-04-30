@@ -105,7 +105,6 @@ pub(crate) struct ObjectUnresolved {
     id: ObjectId,
     name: String,
     pub(crate) ty: ObjectTypeId,
-    is_hidden: bool,
     relations: prost_types::Struct,
 }
 
@@ -128,10 +127,6 @@ impl crate::space::SearchOutput for ObjectUnresolved {
         crate::pb::models::object_type::Layout::Bookmark,
     ];
     type Id = ObjectId;
-
-    fn is_hidden(&self) -> bool {
-        self.is_hidden
-    }
 }
 
 impl TryFromProst for ObjectUnresolved {
@@ -150,14 +145,12 @@ impl TryFromProst for ObjectUnresolved {
 
         let id = value.take::<ObjectId>("id")?;
         let name = value.take::<String>("name")?;
-        let is_hidden = value.take_optional::<bool>("isHidden")?.unwrap_or_default();
         let ty = value.take::<ObjectTypeId>("type")?;
 
         Ok(Self {
             id,
             name,
             ty,
-            is_hidden,
             relations: value.into_inner(),
         })
     }
