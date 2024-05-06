@@ -54,12 +54,12 @@ impl AnytypeClient {
         };
 
         assert!(
-            response.version == "v0.32.1",
-            "anytype-friend currently only supports anytype-heart v0.32.1"
+            response.version == "v0.33.2",
+            "anytype-friend currently only supports anytype-heart v0.33.2"
         );
         assert!(
-            response.details == "build on 2024-03-05 15:37:42 +0000 UTC at #a7986fffadcc2031b1eb3372265db5dda05f4c6d",
-            "anytype-friend currently only supports anytype-heart build a7986fffadcc2031b1eb3372265db5dda05f4c6d"
+            response.details == "build on 2024-04-25 13:28:54 +0000 UTC at #4ec64b016e2be3a5229dc865452c066f653e209c",
+            "anytype-friend currently only supports anytype-heart build 4ec64b016e2be3a5229dc865452c066f653e209c"
         );
 
         Ok(Self {
@@ -196,6 +196,9 @@ impl AnytypeClient {
                 Code::Null => {}
                 Code::UnknownError => return Err(tonic::Status::unknown(error.description)),
                 Code::BadInput => return Err(tonic::Status::invalid_argument(error.description)),
+                Code::AppTokenNotFoundInTheCurrentAccount => {
+                    return Err(tonic::Status::failed_precondition(error.description))
+                }
             }
         }
 
