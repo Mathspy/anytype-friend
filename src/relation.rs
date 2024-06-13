@@ -259,6 +259,21 @@ impl IntoProstValue for RelationValue {
     }
 }
 
+pub struct IncompatibleRelationValue {
+    expected: RelationFormat,
+    received: RelationFormat,
+}
+
+impl Display for IncompatibleRelationValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Expected format doesn't match received format:\nexpected:{}\nreceived:{}",
+            self.expected, self.received
+        )
+    }
+}
+
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Relation {
     id: RelationId,
@@ -297,6 +312,25 @@ impl Relation {
             format: self.format.clone(),
         }
     }
+
+    pub(crate) fn validate(
+        &self,
+        value: RelationValue,
+    ) -> Result<RelationDetail, IncompatibleRelationValue> {
+        let expected_format = self.format();
+        let received_format = value.format();
+        if expected_format.is_superset(&received_format) {
+            Ok(RelationDetail {
+                key: self.relation_key.clone(),
+                value,
+            })
+        } else {
+            Err(IncompatibleRelationValue {
+                expected: expected_format.clone(),
+                received: received_format,
+            })
+        }
+    }
 }
 
 impl TryFromProst for Relation {
@@ -333,4 +367,17 @@ impl crate::space::SearchOutput for Relation {
     const LAYOUT: &'static [crate::pb::models::object_type::Layout] =
         &[crate::pb::models::object_type::Layout::Relation];
     type Id = RelationId;
+}
+
+/// Internal value only obtainable via [Relation::validate] that guarantees a relation's type has
+/// been validated
+pub(crate) struct RelationDetail {
+    key: RelationKey,
+    value: RelationValue,
+}
+
+impl RelationDetail {
+    pub(crate) fn into_raw_parts(self) -> (String, prost_types::Value) {
+        (self.key.0, self.value.into_prost())
+    }
 }

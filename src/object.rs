@@ -9,7 +9,7 @@ use cid::CidGeneric;
 use crate::{
     object_type::{ObjectType, ObjectTypeId, ObjectTypeUnresolved},
     prost_ext::{IntoProstValue, ProstConversionError, ProstStruct, TryFromProst},
-    relation::{Relation, RelationFormat, RelationValue},
+    relation::{IncompatibleRelationValue, Relation, RelationFormat, RelationValue},
     space::Space,
 };
 
@@ -68,21 +68,6 @@ impl ObjectSpec {
     }
 }
 
-pub struct IncompatibleRelationValue {
-    expected: RelationFormat,
-    received: RelationFormat,
-}
-
-impl Display for IncompatibleRelationValue {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Expected format doesn't match received format:\nexpected:{}\nreceived:{}",
-            self.expected, self.received
-        )
-    }
-}
-
 impl TryFrom<ObjectDescription> for prost_types::Struct {
     type Error = IncompatibleRelationValue;
 
@@ -98,16 +83,9 @@ impl TryFrom<ObjectDescription> for prost_types::Struct {
                 // string it will just wholeheartedly accept it, it will even return it back to you
                 // if you query for it later without any errors
                 .map(|(relation, value)| {
-                    let expected_format = relation.format();
-                    let received_format = value.format();
-                    if expected_format.is_superset(&received_format) {
-                        Ok((relation.relation_key.0, value.into_prost()))
-                    } else {
-                        Err(IncompatibleRelationValue {
-                            expected: expected_format.clone(),
-                            received: received_format,
-                        })
-                    }
+                    relation
+                        .validate(value)
+                        .map(|detail| detail.into_raw_parts())
                 })
                 .collect::<Result<Vec<_>, Self::Error>>()?,
         );
