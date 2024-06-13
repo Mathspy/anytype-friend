@@ -5,19 +5,17 @@ use std::sync::Arc;
 use futures_util::stream::FuturesUnordered;
 use futures_util::TryStreamExt;
 
+use crate::client::Client;
 use crate::object::{Object, ObjectDescription, ObjectId, ObjectSpec, ObjectUnresolved};
 use crate::object_type::{ObjectType, ObjectTypeSpec, ObjectTypeUnresolved};
-use crate::pb::{
-    self, client_commands_client::ClientCommandsClient, models::block::content::dataview::Filter,
-};
+use crate::pb::{self, models::block::content::dataview::Filter};
 use crate::prost_ext::{IntoProstValue, ProstStruct, TryFromProst};
 use crate::relation::{Relation, RelationSpec};
 use crate::request::RequestWithToken;
 
 #[derive(Debug)]
 pub(crate) struct SpaceInner {
-    pub(crate) client: ClientCommandsClient<tonic::transport::Channel>,
-    pub(crate) token: String,
+    pub(crate) client: Client,
     pub(crate) info: pb::models::account::Info,
 }
 
@@ -74,13 +72,14 @@ impl Space {
         let response = self
             .inner
             .client
+            .grpc
             .clone()
             .object_search(RequestWithToken {
                 request: pb::rpc::object::search::Request {
                     filters,
                     ..Default::default()
                 },
-                token: &self.inner.token,
+                token: &self.inner.client.token,
             })
             .await?
             .into_inner();
@@ -192,13 +191,14 @@ impl Space {
         let response = self
             .inner
             .client
+            .grpc
             .clone()
             .object_create_relation(RequestWithToken {
                 request: pb::rpc::object::create_relation::Request {
                     space_id: self.inner.info.account_space_id.clone(),
                     details: Some(relation_spec.clone().into()),
                 },
-                token: &self.inner.token,
+                token: &self.inner.client.token,
             })
             .await?
             .into_inner();
@@ -302,6 +302,7 @@ Received recommended relations: {:?}",
         let response = self
             .inner
             .client
+            .grpc
             .clone()
             .object_create_object_type(RequestWithToken {
                 request: pb::rpc::object::create_object_type::Request {
@@ -310,7 +311,7 @@ Received recommended relations: {:?}",
 
                     ..Default::default()
                 },
-                token: &self.inner.token,
+                token: &self.inner.client.token,
             })
             .await?
             .into_inner();
@@ -390,6 +391,7 @@ Received recommended relations: {:?}",
         let response =
             self.inner
                 .client
+                .grpc
                 .clone()
                 .object_create(RequestWithToken {
                     request: pb::rpc::object::create::Request {
@@ -401,7 +403,7 @@ Received recommended relations: {:?}",
 
                         ..Default::default()
                     },
-                    token: &self.inner.token,
+                    token: &self.inner.client.token,
                 })
                 .await?
                 .into_inner();

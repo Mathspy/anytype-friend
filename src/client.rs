@@ -1,9 +1,67 @@
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use crate::pb::{self, client_commands_client::ClientCommandsClient, models::Account};
 use crate::request::RequestWithToken;
 use crate::space::{Space, SpaceInner};
+
+#[derive(Debug)]
+pub(crate) struct ClientInner {
+    pub(crate) grpc: ClientCommandsClient<tonic::transport::Channel>,
+    pub(crate) token: String,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct Client {
+    inner: Arc<ClientInner>,
+}
+
+impl Deref for Client {
+    type Target = ClientInner;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl Drop for ClientInner {
+    fn drop(&mut self) {
+        let mut grpc = self.grpc.clone();
+        let token = self.token.clone();
+
+        tokio::spawn(async move {
+            // TODO: This doesn't actually do much right now. Ask AnyType team for a graceful
+            // way of shutting down
+            let response = grpc
+                .app_shutdown(RequestWithToken {
+                    request: pb::rpc::app::shutdown::Request {},
+                    token: &token,
+                })
+                .await;
+
+            let response = match response {
+                Ok(response) => response,
+                Err(error) => {
+                    // TODO: Proper logging
+                    dbg!(error);
+                    return;
+                }
+            };
+
+            if let Some(error) = response.into_inner().error {
+                use pb::rpc::app::shutdown::response::error::Code;
+
+                if matches!(error.code(), Code::Null) {
+                    return;
+                }
+
+                // TODO: Proper logging
+                dbg!(error.description);
+            }
+        });
+    }
+}
 
 pub struct AnytypeClient {
     inner: ClientCommandsClient<tonic::transport::Channel>,
@@ -19,8 +77,7 @@ pub enum NetworkSync {
 }
 
 pub struct AuthorizedAnytypeClient {
-    inner: ClientCommandsClient<tonic::transport::Channel>,
-    token: String,
+    client: Client,
     account: Account,
     event_listener: tokio::sync::mpsc::Receiver<pb::event::message::Value>,
     event_listener_task: tokio::task::JoinHandle<()>,
@@ -170,8 +227,12 @@ impl AnytypeClient {
         }
 
         Ok(AuthorizedAnytypeClient {
-            inner: self.inner,
-            token,
+            client: Client {
+                inner: Arc::new(ClientInner {
+                    grpc: self.inner,
+                    token,
+                }),
+            },
             account: Self::account_or_error(response.account)?,
             event_listener,
             event_listener_task,
@@ -331,8 +392,12 @@ impl AnytypeClient {
         Ok((
             mnemonic,
             AuthorizedAnytypeClient {
-                inner: self.inner,
-                token,
+                client: Client {
+                    inner: Arc::new(ClientInner {
+                        grpc: self.inner,
+                        token,
+                    }),
+                },
                 account: Self::account_or_error(response.account)?,
                 event_listener,
                 event_listener_task,
@@ -441,13 +506,14 @@ impl AuthorizedAnytypeClient {
 
     pub async fn open_space(&self, space_id: &str) -> Result<Option<Space>, tonic::Status> {
         let response = self
-            .inner
+            .client
+            .grpc
             .clone()
             .workspace_open(RequestWithToken {
                 request: pb::rpc::workspace::open::Request {
                     space_id: space_id.to_string(),
                 },
-                token: &self.token,
+                token: &self.client.token,
             })
             .await?
             .into_inner();
@@ -477,8 +543,7 @@ impl AuthorizedAnytypeClient {
 
         Ok(Some(Space {
             inner: Arc::new(SpaceInner {
-                client: self.inner.clone(),
-                token: self.token.clone(),
+                client: self.client.clone(),
                 info,
             }),
         }))
