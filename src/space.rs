@@ -10,7 +10,7 @@ use crate::object::{Object, ObjectDescription, ObjectId, ObjectSpec, ObjectUnres
 use crate::object_type::{ObjectType, ObjectTypeSpec, ObjectTypeUnresolved};
 use crate::pb::{self, models::block::content::dataview::Filter};
 use crate::prost_ext::{IntoProstValue, ProstStruct, TryFromProst};
-use crate::relation::{Relation, RelationSpec};
+use crate::relation::{Relation, RelationDetail, RelationSpec};
 use crate::request::RequestWithToken;
 
 #[derive(Debug)]
@@ -433,5 +433,43 @@ Received recommended relations: {:?}",
             None => self.create_object(object_spec.as_description()).await,
             Some(object) => Ok(object),
         }
+    }
+
+    pub(crate) async fn set_relation(
+        &self,
+        id: ObjectId,
+        detail: RelationDetail,
+    ) -> Result<(), tonic::Status> {
+        use pb::rpc::object::set_details::Detail;
+
+        let (key, value) = detail.into_raw_parts();
+        let response = self
+            .inner
+            .client
+            .grpc
+            .clone()
+            .object_set_details(RequestWithToken {
+                request: pb::rpc::object::set_details::Request {
+                    context_id: format!("{id}"),
+                    details: vec![Detail {
+                        key,
+                        value: Some(value),
+                    }],
+                },
+                token: &self.inner.client.token,
+            })
+            .await?
+            .into_inner();
+
+        if let Some(error) = response.error {
+            use pb::rpc::object::set_details::response::error::Code;
+            match error.code() {
+                Code::Null => {}
+                Code::UnknownError => return Err(tonic::Status::unknown(error.description)),
+                Code::BadInput => return Err(tonic::Status::invalid_argument(error.description)),
+            }
+        }
+
+        Ok(())
     }
 }

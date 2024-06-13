@@ -245,4 +245,22 @@ impl Object {
             _ => todo!(),
         }
     }
+
+    pub async fn set(
+        &self,
+        key: &Relation,
+        value: RelationValue,
+    ) -> Result<Option<RelationValue>, tonic::Status> {
+        let previous_value = self.get(key).await;
+
+        self.space
+            .set_relation(
+                self.id,
+                key.validate(value)
+                    .map_err(|error| tonic::Status::failed_precondition(format!("{error}")))?,
+            )
+            .await?;
+
+        Ok(previous_value)
+    }
 }
