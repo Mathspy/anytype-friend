@@ -1,6 +1,6 @@
 mod utils;
 
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap};
 
 use anytype_friend::{
     AnytypeClient, NetworkSync, ObjectDescription, ObjectSpec, ObjectTypeSpec, RelationFormat,
@@ -8,38 +8,6 @@ use anytype_friend::{
 };
 use chrono::{DateTime, Utc};
 use utils::run_with_service;
-
-macro_rules! assert_relations_eq {
-    ($a:expr, $b:expr) => {
-        let equal = match ($a, $b) {
-            (RelationValue::Text(a), RelationValue::Text(b))
-            | (RelationValue::Url(a), RelationValue::Url(b))
-            | (RelationValue::Email(a), RelationValue::Email(b))
-            | (RelationValue::Phone(a), RelationValue::Phone(b)) => a == b,
-            (RelationValue::Number(a), RelationValue::Number(b)) => a == b,
-            (RelationValue::Date(a), RelationValue::Date(b)) => a == b,
-            (RelationValue::Checkbox(a), RelationValue::Checkbox(b)) => a == b,
-            (RelationValue::Object(a), RelationValue::Object(b)) => {
-                a.into_iter()
-                    .map(|object| object.id().clone())
-                    .collect::<HashSet<_>>()
-                    == b.into_iter()
-                        .map(|object| object.id().clone())
-                        .collect::<HashSet<_>>()
-            }
-            _ => false,
-        };
-
-        if !equal {
-            panic!(
-                "assertion `left == right` failed
-left: {:?}
-right: {:?}",
-                $a, $b
-            )
-        }
-    };
-}
 
 #[tokio::test]
 async fn object_can_create_preexisting_one() {
