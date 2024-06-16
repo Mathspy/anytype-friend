@@ -111,12 +111,12 @@ impl AnytypeClient {
         };
 
         assert!(
-            response.version == "v0.33.6",
-            "anytype-friend currently only supports anytype-heart v0.33.6"
+            response.version == "v0.34.0",
+            "anytype-friend currently only supports anytype-heart v0.34.0"
         );
         assert!(
-            response.details == "build on 2024-05-22 13:45:39 +0000 UTC at #75374629f026904f01d57b422abf0c350488d584",
-            "anytype-friend currently only supports anytype-heart build 75374629f026904f01d57b422abf0c350488d584"
+            response.details == "build on 2024-06-07 12:47:15 +0000 UTC at #7a0f64abeaface1cd02a50b8e49549b9ef1097d0",
+            "anytype-friend currently only supports anytype-heart build 7a0f64abeaface1cd02a50b8e49549b9ef1097d0"
         );
 
         Ok(Self {
